@@ -58,7 +58,7 @@ More commands (`topo`, `swarm`, `experiment`, `plots`) will be added as they are
 | Name | Role | GitHub |
 |---|---|---|
 | (name) | Transport (MurmurTP) | @username |
-| (name) | Swarm (tracker, peers) | @username |
+| Muhammad Hammad | Swarm (tracker, peers) | @https://github.com/MuhammadHammadCS |
 | (name) | Infra (topology, experiments, dashboard) | @username |
 
 ## AI-use disclosure
