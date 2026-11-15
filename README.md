@@ -20,7 +20,7 @@ Sending a big file from one server to many clients is limited by the server's ba
 | Gate | Sprint | Goal | Status |
 |---|---|---|---|
 | S0 | Sprint 0 | Kickoff: repo settings, hygiene, contracts, one merged PR each | complete (team confirmation) |
-| S1 | Sprint 1 | Foundations: topology, tracker, TcpTransport, codecs, loss shim | in progress: A1.1 TCP transport |
+| S1 | Sprint 1 | Foundations: topology, tracker, TcpTransport, codecs, loss shim | in progress: A1.1 merged; A1.2 header codec implemented |
 | S2 | Sprint 2 | TCP swarm: 1 seed + 10 leechers over TCP, rarest-first, choking | not started |
 | S3 | Sprint 3 | MurmurTP in swarm: completes at 5% loss, one config flag | not started |
 | S4 | Sprint 4 | Experiments: E1 to E5 tables filled, 3 runs each, graphs | not started |
@@ -40,6 +40,7 @@ make test    # run tests
 See [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md) and [docs/reproduce.md](docs/reproduce.md).
 
 TCP transport usage and platform-specific metrics: [docs/tcp-transport.md](docs/tcp-transport.md).
+MurmurTP packet encoding and checksum validation: [docs/header-codec.md](docs/header-codec.md).
 
 ## Repo layout
 

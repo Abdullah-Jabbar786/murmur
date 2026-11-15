@@ -2,10 +2,11 @@
 
 One short line per person per week.
 
-15 Nov 2026: Sprint 0 complete per team confirmation. Sprint 1 A1.1 implemented
-on `codex/s1-tcp-transport`: TCP byte stream, socket options, metrics, and tests.
-Local Windows verification recorded in `docs/ai-disclosure.md`; Linux socket
-checks, teammate review, and merge remain pending. Gate S1 is not yet complete.
+15 Nov 2026: Sprint 0 complete per team confirmation. A1.1 TCP transport merged
+in PR #7 (`14677e3`) and pulled into local main. A1.2 header codec and checksum
+tests implemented on `majid/s1-header-codec`; review and merge pending.
+Windows verification: 43 passed, 2 Linux TCP tests skipped. Linux runtime results
+have not been independently verified here. Gate S1 is not yet complete.
 
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
