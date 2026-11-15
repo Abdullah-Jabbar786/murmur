@@ -20,7 +20,7 @@ Sending a big file from one server to many clients is limited by the server's ba
 | Gate | Sprint | Goal | Status |
 |---|---|---|---|
 | S0 | Sprint 0 | Kickoff: repo settings, hygiene, contracts, one merged PR each | complete (team confirmation) |
-| S1 | Sprint 1 | Foundations: topology, tracker, TcpTransport, codecs, loss shim | in progress: A1.1–A1.3 merged; A1.4 piece selection implemented |
+| S1 | Sprint 1 | Foundations: topology, tracker, TcpTransport, codecs, loss shim | in progress: A1.1–A1.4 merged; A1.5 choking implemented |
 | S2 | Sprint 2 | TCP swarm: 1 seed + 10 leechers over TCP, rarest-first, choking | not started |
 | S3 | Sprint 3 | MurmurTP in swarm: completes at 5% loss, one config flag | not started |
 | S4 | Sprint 4 | Experiments: E1 to E5 tables filled, 3 runs each, graphs | not started |
@@ -43,6 +43,7 @@ TCP transport usage and platform-specific metrics: [docs/tcp-transport.md](docs/
 MurmurTP packet encoding and checksum validation: [docs/header-codec.md](docs/header-codec.md).
 Seeded UDP impairments for local tests: [docs/loss-shim.md](docs/loss-shim.md).
 Rarest-first selection and peer integration: [docs/piece-selection.md](docs/piece-selection.md).
+Choking decisions and optimistic unchoking: [docs/choking.md](docs/choking.md).
 
 ## Repo layout
 
