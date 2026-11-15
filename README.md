@@ -12,18 +12,19 @@ Sending a big file from one server to many clients is limited by the server's ba
 
 - **Tracker and swarm**: chunked file distribution with rarest-first piece selection, choking and unchoking, and SHA-256 verified pieces
 - **MurmurTP**: a custom reliable transport on top of UDP with selective repeat, RTT estimation, flow control and AIMD congestion control
-- **Routed lab**: 2 routers and 3+ subnets with delay, loss and bandwidth impairments using `tc netem`
-- **Evidence**: packet captures and experiments (3 network conditions, 3 runs each)
+- **Routed lab**: 2 routers and 4 subnets with delay, loss and bandwidth impairments using `tc netem` and `tc tbf`
+- **Evidence**: packet captures and experiments (E1 to E5, 3 network conditions, 3 runs each)
 
 ## Progress
 
-| Gate | Goal | Status |
-|---|---|---|
-| 1 | Proposal, topology, traceroute | not started |
-| 2 | Swarm working over TCP | not started |
-| 3 | Swarm running on MurmurTP | not started |
-| 4 | All experiments and graphs done | not started |
-| 5 | Report, README, demo | not started |
+| Gate | Sprint | Goal | Status |
+|---|---|---|---|
+| S0 | Sprint 0 | Kickoff: repo settings, hygiene, contracts, one merged PR each | in progress |
+| S1 | Sprint 1 | Foundations: topology, tracker, TcpTransport, codecs, loss shim | not started |
+| S2 | Sprint 2 | TCP swarm: 1 seed + 10 leechers over TCP, rarest-first, choking | not started |
+| S3 | Sprint 3 | MurmurTP in swarm: completes at 5% loss, one config flag | not started |
+| S4 | Sprint 4 | Experiments: E1 to E5 tables filled, 3 runs each, graphs | not started |
+| S5 | Sprint 5 | Polish: stretch goal, report, demo, fresh-VM test, v1.0 | not started |
 
 ## Results
 
@@ -36,30 +37,31 @@ make setup   # install dependencies
 make test    # run tests
 ```
 
-More commands (`topo`, `swarm`, `experiment`, `plots`) will be added as they are built. See `docs/reproduce.md`.
+See [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md) and [docs/reproduce.md](docs/reproduce.md).
 
 ## Repo layout
 
 | Folder | What lives there |
 |---|---|
+| `core/` | Transport interface, LoopbackTransport, TcpTransport, events, config |
 | `tracker/` | Flask tracker |
 | `peer/` | Swarm logic (pieces, choking, rarest-first) |
-| `murmurtp/` | Custom reliable UDP transport |
+| `murmurtp/` | Custom reliable UDP transport (MurmurTP) |
 | `infra/` | Topology, routing, netem scripts |
 | `dashboard/` | Live swarm view |
-| `experiments/` | Scripts that run E1 to E5 |
-| `results/` | Raw data and graphs |
+| `experiments/` | Harness scripts for E1 to E5 |
+| `results/` | Raw data, tables and graphs |
 | `captures/` | `.pcapng` traces and annotated screenshots |
-| `docs/` | Proposal, architecture, protocol spec, reports |
+| `docs/` | Master plan, contracts, architecture, protocol spec, reports |
 | `tests/` | Automated tests |
 
 ## Team
 
-| Name | Role | GitHub |
-|---|---|---|
-| (name) | Transport (MurmurTP) | @username |
-| Muhammad Hammad | Swarm (tracker, peers) | @https://github.com/MuhammadHammadCS |
-| (name) | Infra (topology, experiments, dashboard) | @username |
+| Name | Student ID | Role | GitHub |
+|---|---|---|---|
+| Abdullah | 24K-0859 | Lead + Transport (MurmurTP, core algorithms) | [@Abdullah-Jabbar786](https://github.com/Abdullah-Jabbar786) |
+| Muhammad Hammad | 24K-0544 | Swarm (tracker, peer protocol, storage) | [@MuhammadHammadCS](https://github.com/MuhammadHammadCS) |
+| Abdul Majid | 24K-0895 | Infrastructure (topology, netem, dashboard, captures) | [@AbdulMajid006](https://github.com/AbdulMajid006) |
 
 ## AI-use disclosure
 

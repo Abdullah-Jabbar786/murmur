@@ -9,5 +9,8 @@ venv/
 *.log
 testdata/
 results/raw_tmp/
+results/**/*.jsonl
+results/**/*.pcap
+.pytest_cache/
 *.pcapng
 !captures/*.pcapng
