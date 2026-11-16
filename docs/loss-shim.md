@@ -45,6 +45,9 @@ No sudo, namespaces, or `tc netem` are needed for this local test tool.
 - Closing cancels scheduled, unsent copies and closes the underlying socket.
   Already-dispatched packets cannot be recalled. Closing twice is safe;
   sending after close raises `RuntimeError`. Use immutable `bytes` payloads.
+- `abort()` additionally discards output still buffered by the raw UDP transport.
+  Stage 1 uses it when shutting down an endpoint; graceful connection teardown
+  is a separate FIN/ACK operation before endpoint shutdown.
 - Immediate socket errors reach the caller; errors in delayed callbacks are
   reported by asyncio. Asynchronous UDP errors reach the existing protocol.
 
@@ -58,10 +61,10 @@ scheduled copies; `cancelled` counts copies suppressed during shutdown.
 losses are separate from the shim's simulated `dropped` count.
 
 Run `python -m pytest tests/test_murmurtp_lossy.py -v -p no:cacheprovider`.
-Nine tests cover drop-rate accuracy, seeds, delay/jitter, duplication, reordering,
+Ten tests cover drop-rate accuracy, seeds, delay/jitter, duplication, reordering,
 shutdown, socket errors, invalid configuration, real UDP exchange, and randomized
 byte preservation. Virtual-time checks avoid timing-dependent statistical tests.
-The full suite on Windows currently gives 52 passed and 2 existing Linux TCP skips.
+The Linux-specific TCP checks in the full suite are skipped on Windows.
 
 References: [asyncio datagram transports](https://docs.python.org/3.10/library/asyncio-protocol.html#datagram-transports)
 and [event-loop scheduling](https://docs.python.org/3.10/library/asyncio-eventloop.html#scheduling-delayed-callbacks).
