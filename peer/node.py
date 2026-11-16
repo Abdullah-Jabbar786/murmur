@@ -1,4 +1,4 @@
-"""H2.1: one verified seed-to-leecher transfer over the existing TCP transport."""
+"""Peer CLI: single TCP download and bidirectional multi-peer sessions."""
 
 import argparse
 import asyncio
@@ -59,7 +59,9 @@ class _Session:
             raise PeerProtocolError("peer info_hash does not match metadata")
         if remote.peer_id == self.peer_id:
             raise PeerProtocolError("self connection: peer IDs must be different")
-        await self.send(self.store.bitfield)
+        self.remote_id = remote.peer_id
+        self.advertised_pieces = self.store.owned_pieces
+        await self.send(Bitfield(self.advertised_pieces))
         remote = await self.receive()
         if not isinstance(remote, Bitfield):
             raise PeerProtocolError("BITFIELD must follow HANDSHAKE exactly once")
@@ -244,6 +246,27 @@ async def download_file(metadata: Metadata, path, seed_address: tuple[str, int],
 
 async def _run_cli(args) -> None:
     metadata = load_metadata(args.metadata)
+    if args.command == "swarm":
+        from peer.swarm import SwarmNode
+
+        with PieceStore(args.file, metadata, mode=args.mode) as store:
+            node = SwarmNode(store, io_timeout=args.io_timeout)
+            try:
+                await node.start((args.host, args.port))
+                print(f"Peer listening on {node.address[0]}:{node.address[1]}", flush=True)
+                for address in args.peer:
+                    await node.connect(address)
+                await node.wait_complete(args.total_timeout)
+                print(f"Verified {len(store.owned_pieces)} pieces; continuing to serve: {args.file}",
+                      flush=True)
+                await asyncio.Event().wait()
+            finally:
+                await node.close()
+                print(f"Payload received: {node.bytes_received}; sent: {node.bytes_sent}; "
+                      f"hash failures: {node.hash_failures}")
+                for error in node.errors:
+                    print(f"Peer session: {error}")
+        return
     if args.command == "download":
         result = await download_file(metadata, args.file, (args.seed_host, args.seed_port),
                                      resume=args.resume, io_timeout=args.io_timeout,
@@ -264,26 +287,44 @@ async def _run_cli(args) -> None:
                 print(f"Peer session: {error}")
 
 
+def _endpoint(value):
+    from ipaddress import IPv4Address
+
+    try:
+        host, port = value.rsplit(":", 1)
+        host, port = str(IPv4Address(host)), int(port)
+        if not 1 <= port <= 65535:
+            raise ValueError("invalid port")
+        return host, port
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("peer must be IPv4:port (port 1..65535)") from exc
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
-    for name in ("seed", "download"):
+    for name in ("seed", "download", "swarm"):
         sub = subparsers.add_parser(name)
         sub.add_argument("--metadata", required=True)
         sub.add_argument("--file", required=True)
         sub.add_argument("--io-timeout", type=float, default=30.0)
-        if name == "seed":
+        if name in ("seed", "swarm"):
             sub.add_argument("--host", default="127.0.0.1")
             sub.add_argument("--port", type=int, default=6881)
+            if name == "swarm":
+                sub.add_argument("--peer", type=_endpoint, action="append", default=[])
+                sub.add_argument("--mode", choices=("create", "resume", "seed"), default="create")
+                sub.add_argument("--total-timeout", type=float, default=1800.0)
         else:
             sub.add_argument("--seed-host", default="127.0.0.1")
             sub.add_argument("--seed-port", type=int, default=6881)
             sub.add_argument("--resume", action="store_true")
             sub.add_argument("--total-timeout", type=float, default=1800.0)
     args = parser.parse_args()
-    port = args.port if args.command == "seed" else args.seed_port
-    if not 1 <= port <= 65535:
-        parser.error("port must be in [1, 65535]")
+    port = args.seed_port if args.command == "download" else args.port
+    minimum_port = 1 if args.command == "download" else 0
+    if not minimum_port <= port <= 65535:
+        parser.error(f"port must be in [{minimum_port}, 65535]")
     try:
         asyncio.run(_run_cli(args))
     except KeyboardInterrupt:
