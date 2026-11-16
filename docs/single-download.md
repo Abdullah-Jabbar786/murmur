@@ -121,6 +121,9 @@ errors propagate to API callers; the CLI prints an error and exits nonzero.
 
 ## Current scope
 
+This section describes the original H2.1 commands. For the newer H2.2 `swarm`
+command and bidirectional sharing, see [multi-peer.md](multi-peer.md).
+
 This is a direct-address TCP baseline: it does not yet call the tracker, download
 from several peers, run rarest-first/choking timers, pipeline requests, or turn
 the completed leecher into a serving peer. Those behaviors belong to H2.2 and
