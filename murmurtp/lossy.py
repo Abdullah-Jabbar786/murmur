@@ -108,9 +108,17 @@ class LossyDatagramTransport:
     def close(self) -> None:
         """Cancel unsent copies and close the owned UDP transport; idempotent."""
         if not self._closed:
-            self._closed = True
-            for handle in self._pending:
-                handle.cancel()
-            self._counts["cancelled"] += len(self._pending)
-            self._pending.clear()
+            self._cancel_pending()
             self._transport.close()
+
+    def abort(self) -> None:
+        """Cancel scheduled copies and discard raw socket output immediately."""
+        self._cancel_pending()
+        self._transport.abort()
+
+    def _cancel_pending(self) -> None:
+        self._closed = True
+        for handle in self._pending:
+            handle.cancel()
+        self._counts["cancelled"] += len(self._pending)
+        self._pending.clear()
