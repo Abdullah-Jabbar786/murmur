@@ -247,9 +247,11 @@ async def download_file(metadata: Metadata, path, seed_address: tuple[str, int],
 async def _run_cli(args) -> None:
     metadata = load_metadata(args.metadata)
     if args.command == "swarm":
+        from contextlib import ExitStack
         from pathlib import Path
 
         from core.config import load_config
+        from core.events import EventLog
         from peer.swarm import SwarmNode
 
         if args.config is not None and not Path(args.config).is_file():
@@ -274,9 +276,12 @@ async def _run_cli(args) -> None:
                 peers = [args.origin_seed]
         elif args.origin_seed is not None:
             raise ValueError("--origin-seed requires client_server distribution mode")
-        with PieceStore(args.file, metadata, mode=args.mode) as store:
+        with ExitStack() as resources:
+            store = resources.enter_context(PieceStore(args.file, metadata, mode=args.mode))
+            event_log = (resources.enter_context(EventLog(args.host, args.run_dir))
+                         if args.run_dir is not None else None)
             node = SwarmNode(store, io_timeout=args.io_timeout, mode=distribution_mode,
-                             is_seed=is_seed, seed_address=args.origin_seed)
+                             is_seed=is_seed, seed_address=args.origin_seed, event_log=event_log)
             try:
                 await node.start((args.host, args.port))
                 print(f"Peer listening on {node.address[0]}:{node.address[1]}", flush=True)
@@ -346,6 +351,7 @@ def main() -> None:
                                  help="override the JSON mode setting")
                 sub.add_argument("--origin-seed", type=_endpoint,
                                  help="sole permitted server endpoint for client-server leechers")
+                sub.add_argument("--run-dir", help="write flushed Contract 3 JSONL events to this directory")
         else:
             sub.add_argument("--seed-host", default="127.0.0.1")
             sub.add_argument("--seed-port", type=int, default=6881)
