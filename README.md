@@ -28,7 +28,7 @@ Sending a big file from one server to many clients is limited by the server's ba
 
 ## Results
 
-Coming after the experiments. Graphs will go here.
+Experimental results are not available yet. After completing E1–E5 across the three network conditions (three runs each), add the measured tables and graphs here.
 
 ## Quick start
 
