@@ -13,14 +13,16 @@ H1.3 tracker server and async client merged in PR #15 (`78e2cba`).
 H1.4 disk-backed piece store merged in PR #16 (`3bb4b4d`).
 H2.1 single TCP download merged in PR #17 (`c64f3cf`). I1 verified on localhost:
 64 MiB over real TCP, all 256 piece hashes and whole-file SHA-256 matched.
-H2.2 multi-peer transfers implemented; review and merge pending. Suggested
-pushing branch: `hammad/s2-multi-peer`. Three-peer relays verified on Loopback
-and real TCP, including onward uploads from a downloading/completed leecher.
-Windows verification: 317 passed, 2 Linux TCP tests skipped.
+H2.2 multi-peer transfers merged in PR #18 (`418bbe5`).
+H2.3 client-server mode implemented; review and merge pending. Suggested pushing
+branch: `hammad/s2-client-server-mode`. Two leechers verified on Loopback and
+real TCP with zero payload uploads, origin-only connections, and fixed roles
+after completion. JSON mode selection and CLI override verified.
+Windows verification: 337 passed, 2 Linux TCP tests skipped.
 Linux runtime results have not been independently verified here.
 Gate S1 is not yet complete: routed topology/evidence remain outstanding.
-H2.2 review/merge, tracker discovery, algorithm integration, client-server
-mode, full event hooks, and the ten-leecher gate remain future work.
+H2.3 review/merge, tracker discovery, algorithm integration, full event hooks,
+and the ten-leecher gate remain future work.
 
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
