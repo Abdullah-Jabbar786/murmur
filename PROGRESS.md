@@ -9,12 +9,13 @@ A1.6 stop-and-wait UDP stage merged in PR #12 (`1bbcd4a`); acceptance:
 1 MiB at 10% loss in both directions, SHA-256 verified.
 H1.1 peer wire codec merged in PR #13 (`d38b41d`).
 H1.2 deterministic file generator and metadata tool merged in PR #14 (`de760e8`).
-H1.3 tracker server and async client implemented; review and merge pending.
-Intended branch: `majid/s1-tracker`. Verified peer discovery over real localhost
-HTTP, lifecycle updates, 90-second expiry boundaries, and client error handling.
-Windows verification: 257 passed, 2 Linux TCP tests skipped.
+H1.3 tracker server and async client merged in PR #15 (`78e2cba`).
+H1.4 disk-backed piece store implemented; review and merge pending.
+Intended branch: `majid/s1-storage`. Verified block assembly, corruption
+detection and retry, verified-only sharing, short pieces, seed loading, and resume.
+Windows verification: 277 passed, 2 Linux TCP tests skipped.
 Linux runtime results have not been independently verified here.
-Gate S1 is not yet complete: tracker review/merge, storage, single TCP download,
+Gate S1 is not yet complete: storage review/merge, single TCP download,
 and routed topology/evidence remain outstanding in this checkout.
 
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
