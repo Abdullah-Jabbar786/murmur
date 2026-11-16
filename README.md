@@ -20,8 +20,8 @@ Sending a big file from one server to many clients is limited by the server's ba
 | Gate | Sprint | Goal | Status |
 |---|---|---|---|
 | S0 | Sprint 0 | Kickoff: repo settings, hygiene, contracts, one merged PR each | complete (team confirmation) |
-| S1 | Sprint 1 | Foundations: topology, tracker, TcpTransport, codecs, loss shim | in progress: A1.1–A1.4 merged; A1.5 choking implemented |
-| S2 | Sprint 2 | TCP swarm: 1 seed + 10 leechers over TCP, rarest-first, choking | not started |
+| S1 | Sprint 1 | Foundations: topology, tracker, TcpTransport, codecs, loss shim | in progress: A1.1–A1.6 and H1.1–H1.4 merged; localhost I1 implemented; topology/evidence pending |
+| S2 | Sprint 2 | TCP swarm: 1 seed + 10 leechers over TCP, rarest-first, choking | in progress: H2.1 single TCP download implemented |
 | S3 | Sprint 3 | MurmurTP in swarm: completes at 5% loss, one config flag | not started |
 | S4 | Sprint 4 | Experiments: E1 to E5 tables filled, 3 runs each, graphs | not started |
 | S5 | Sprint 5 | Polish: stretch goal, report, demo, fresh-VM test, v1.0 | not started |
@@ -44,6 +44,12 @@ MurmurTP packet encoding and checksum validation: [docs/header-codec.md](docs/he
 Seeded UDP impairments for local tests: [docs/loss-shim.md](docs/loss-shim.md).
 Rarest-first selection and peer integration: [docs/piece-selection.md](docs/piece-selection.md).
 Choking decisions and optimistic unchoking: [docs/choking.md](docs/choking.md).
+MurmurTP Stage 1 lifecycle, retries, and limitations: [docs/murmurtp-stage1.md](docs/murmurtp-stage1.md).
+Peer message encoding, validation, and stream framing: [docs/wire-codec.md](docs/wire-codec.md).
+Deterministic test files, piece hashes, and torrent identity: [docs/metadata-tool.md](docs/metadata-tool.md).
+Tracker announcements, peer discovery, and expiry: [docs/tracker.md](docs/tracker.md).
+Block assembly, verified pieces, and download storage: [docs/piece-storage.md](docs/piece-storage.md).
+First real TCP seed-to-leecher transfer and demo: [docs/single-download.md](docs/single-download.md).
 
 ## Repo layout
 
