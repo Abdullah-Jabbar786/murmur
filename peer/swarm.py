@@ -34,8 +34,8 @@ class _Link:
             await self.session.send(message)
 
     async def upload_policy(self):
-        choke = not (self.peer_interested and self.upload_allowed)
-        if choke != self.am_choking:
+        choke = not (self.peer_interested and self.upload_allowed and self.node.uploads_enabled)
+        if choke != self.am_choking or (not self.node.uploads_enabled and self.peer_interested):
             self.am_choking = choke
             await self.send(Choke() if choke else Unchoke())
 
@@ -57,6 +57,9 @@ class _Link:
                 self.peer_interested = isinstance(message, Interested)
                 await self.upload_policy()
             elif isinstance(message, Request):
+                if not self.node.uploads_enabled:
+                    await self.send(Choke())
+                    continue  # A completed client-server leecher still never serves data.
                 if not self.peer_interested:
                     raise PeerProtocolError("REQUEST while choked/uninterested")
                 if self.am_choking:
@@ -136,15 +139,34 @@ class _Link:
 class SwarmNode:
     """Own a transport and sessions, while the caller owns the PieceStore.
 
-    Use serially on one asyncio loop. Completed nodes keep uploading until close.
+    Use serially on one asyncio loop. Swarm peers keep uploading after completion;
+    client-server leechers retain their non-uploading role until close.
     Store I/O is synchronous and never yields inside a read/write operation.
     """
 
     def __init__(self, store: PieceStore, *, transport: Optional[Transport] = None,
                  peer_id: Optional[bytes] = None, io_timeout: float = 30.0,
-                 request_timeout: float = 15.0, max_piece_retries: int = 2):
+                 request_timeout: float = 15.0, max_piece_retries: int = 2,
+                 mode: str = "swarm", is_seed: bool = False, seed_address=None):
         if store.closed:
             raise ValueError("store must be open")
+        if mode not in ("swarm", "client_server"):
+            raise ValueError("mode must be swarm or client_server")
+        if type(is_seed) is not bool:
+            raise ValueError("is_seed must be bool")
+        if is_seed and not store.complete:
+            raise ValueError("the origin seed must have every piece verified")
+        if mode == "client_server" and not is_seed:
+            from ipaddress import IPv4Address
+
+            if (not isinstance(seed_address, tuple) or len(seed_address) != 2
+                    or not isinstance(seed_address[0], str)
+                    or type(seed_address[1]) is not int or not 1 <= seed_address[1] <= 65535):
+                raise ValueError("client-server leechers require seed_address=(IPv4, port)")
+            seed_address = (str(IPv4Address(seed_address[0])), seed_address[1])
+        elif seed_address is not None:
+            raise ValueError("seed_address is only for a client-server leecher")
+        self._mode, self._is_seed, self._seed_address = mode, is_seed, seed_address
         _timeout(io_timeout)
         _timeout(request_timeout)
         if type(max_piece_retries) is not int or max_piece_retries < 0:
@@ -164,6 +186,18 @@ class SwarmNode:
         self._complete = asyncio.Event()
         if store.complete:
             self._complete.set()
+
+    @property
+    def mode(self):
+        return self._mode
+
+    @property
+    def is_seed(self):
+        return self._is_seed
+
+    @property
+    def uploads_enabled(self):
+        return self.mode == "swarm" or self.is_seed
 
     @property
     def address(self):
@@ -198,10 +232,18 @@ class SwarmNode:
     async def _accept(self):
         while True:
             connection = await self.transport.accept()
+            if self.mode == "client_server" and not self.is_seed:
+                await connection.close()  # Only our outbound connection to the seed is allowed.
+                continue
             self._launch(connection, False)
 
     async def connect(self, address):
         self._check_open()
+        if self.mode == "client_server":
+            if self.is_seed:
+                raise ValueError("client-server origin seed accepts connections; it does not dial peers")
+            if address != self._seed_address:
+                raise ValueError("client-server leechers may connect only to their origin seed")
         connection = await asyncio.wait_for(self.transport.connect(address), self.io_timeout)
         if self._close_task is not None:
             await connection.close()
@@ -279,6 +321,8 @@ class SwarmNode:
         self._check_open()
         if type(allowed) is not bool:
             raise ValueError("allowed must be bool")
+        if allowed and not self.uploads_enabled:
+            raise ValueError("client-server leechers cannot enable uploads")
         link = self._links[peer_id]
         link.upload_allowed = allowed
         await link.upload_policy()

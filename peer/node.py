@@ -247,18 +247,44 @@ async def download_file(metadata: Metadata, path, seed_address: tuple[str, int],
 async def _run_cli(args) -> None:
     metadata = load_metadata(args.metadata)
     if args.command == "swarm":
+        from pathlib import Path
+
+        from core.config import load_config
         from peer.swarm import SwarmNode
 
+        if args.config is not None and not Path(args.config).is_file():
+            raise FileNotFoundError(f"config file does not exist: {args.config}")
+        config = load_config(args.config)
+        if not isinstance(config, dict):
+            raise ValueError("config must be a JSON object")
+        distribution_mode = args.distribution_mode or config.get("mode", "swarm")
+        if distribution_mode not in ("swarm", "client_server"):
+            raise ValueError("config mode must be swarm or client_server")
+        peers = list(args.peer)
+        is_seed = args.mode == "seed"
+        if distribution_mode == "client_server":
+            if is_seed:
+                if peers or args.origin_seed is not None:
+                    raise ValueError("client-server seed accepts connections; omit --peer/--origin-seed")
+            else:
+                if args.origin_seed is None:
+                    raise ValueError("client-server leechers require --origin-seed IPv4:port")
+                if any(peer != args.origin_seed for peer in peers):
+                    raise ValueError("client-server --peer must match --origin-seed")
+                peers = [args.origin_seed]
+        elif args.origin_seed is not None:
+            raise ValueError("--origin-seed requires client_server distribution mode")
         with PieceStore(args.file, metadata, mode=args.mode) as store:
-            node = SwarmNode(store, io_timeout=args.io_timeout)
+            node = SwarmNode(store, io_timeout=args.io_timeout, mode=distribution_mode,
+                             is_seed=is_seed, seed_address=args.origin_seed)
             try:
                 await node.start((args.host, args.port))
                 print(f"Peer listening on {node.address[0]}:{node.address[1]}", flush=True)
-                for address in args.peer:
+                for address in peers:
                     await node.connect(address)
                 await node.wait_complete(args.total_timeout)
-                print(f"Verified {len(store.owned_pieces)} pieces; continuing to serve: {args.file}",
-                      flush=True)
+                status = "continuing to serve" if node.uploads_enabled else "client-server uploads disabled"
+                print(f"Verified {len(store.owned_pieces)} pieces; {status}: {args.file}", flush=True)
                 await asyncio.Event().wait()
             finally:
                 await node.close()
@@ -315,6 +341,11 @@ def main() -> None:
                 sub.add_argument("--peer", type=_endpoint, action="append", default=[])
                 sub.add_argument("--mode", choices=("create", "resume", "seed"), default="create")
                 sub.add_argument("--total-timeout", type=float, default=1800.0)
+                sub.add_argument("--config", help="JSON config; its mode selects distribution behavior")
+                sub.add_argument("--distribution-mode", choices=("swarm", "client_server"),
+                                 help="override the JSON mode setting")
+                sub.add_argument("--origin-seed", type=_endpoint,
+                                 help="sole permitted server endpoint for client-server leechers")
         else:
             sub.add_argument("--seed-host", default="127.0.0.1")
             sub.add_argument("--seed-port", type=int, default=6881)
