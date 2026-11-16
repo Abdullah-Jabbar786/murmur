@@ -20,7 +20,7 @@ Sending a big file from one server to many clients is limited by the server's ba
 | Gate | Sprint | Goal | Status |
 |---|---|---|---|
 | S0 | Sprint 0 | Kickoff: repo settings, hygiene, contracts, one merged PR each | complete (team confirmation) |
-| S1 | Sprint 1 | Foundations: topology, tracker, TcpTransport, codecs, loss shim | in progress: A1.1–A1.6 and H1.1 merged; H1.2 metadata tool implemented |
+| S1 | Sprint 1 | Foundations: topology, tracker, TcpTransport, codecs, loss shim | in progress: A1.1–A1.6 and H1.1–H1.2 merged; H1.3 tracker implemented |
 | S2 | Sprint 2 | TCP swarm: 1 seed + 10 leechers over TCP, rarest-first, choking | not started |
 | S3 | Sprint 3 | MurmurTP in swarm: completes at 5% loss, one config flag | not started |
 | S4 | Sprint 4 | Experiments: E1 to E5 tables filled, 3 runs each, graphs | not started |
@@ -47,6 +47,7 @@ Choking decisions and optimistic unchoking: [docs/choking.md](docs/choking.md).
 MurmurTP Stage 1 lifecycle, retries, and limitations: [docs/murmurtp-stage1.md](docs/murmurtp-stage1.md).
 Peer message encoding, validation, and stream framing: [docs/wire-codec.md](docs/wire-codec.md).
 Deterministic test files, piece hashes, and torrent identity: [docs/metadata-tool.md](docs/metadata-tool.md).
+Tracker announcements, peer discovery, and expiry: [docs/tracker.md](docs/tracker.md).
 
 ## Repo layout
 
