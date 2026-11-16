@@ -103,16 +103,17 @@ def test_reordering_alone_and_final_packet_are_delivered():
     assert shim.stats()["pending"] == 0
 
 
-def test_close_cancels_pending_copies():
+@pytest.mark.parametrize("method", ["close", "abort"])
+def test_close_cancels_pending_copies(method):
     shim, raw, clock, delivered = rig(LossConfig(delay=1, duplicate=1))
     shim.sendto(b"pending")
     assert shim.stats()["pending"] == 2
-    shim.close()
+    getattr(shim, method)()
     clock.run()
     assert not delivered
     assert shim.stats()["cancelled"] == 2
     assert shim.stats()["pending"] == 0
-    raw.close.assert_called_once()
+    getattr(raw, method).assert_called_once()
 
 
 def test_send_errors_are_visible():

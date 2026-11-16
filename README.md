@@ -49,7 +49,6 @@ Peer message encoding, validation, and stream framing: [docs/wire-codec.md](docs
 Deterministic test files, piece hashes, and torrent identity: [docs/metadata-tool.md](docs/metadata-tool.md).
 Tracker announcements, peer discovery, and expiry: [docs/tracker.md](docs/tracker.md).
 Block assembly, verified pieces, and download storage: [docs/piece-storage.md](docs/piece-storage.md).
-First real TCP seed-to-leecher transfer and demo: [docs/single-download.md](docs/single-download.md).
 
 ## Repo layout
 

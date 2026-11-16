@@ -10,16 +10,13 @@ A1.6 stop-and-wait UDP stage merged in PR #12 (`1bbcd4a`); acceptance:
 H1.1 peer wire codec merged in PR #13 (`d38b41d`).
 H1.2 deterministic file generator and metadata tool merged in PR #14 (`de760e8`).
 H1.3 tracker server and async client merged in PR #15 (`78e2cba`).
-H1.4 disk-backed piece store merged in PR #16 (`3bb4b4d`).
-H2.1 single TCP download implemented; review and merge pending.
-Intended branch: `majid/s2-single-download`. I1 verified on localhost: 64 MiB
-transferred over real TCP, all 256 piece hashes and whole-file SHA-256 matched.
-Protocol failures, corruption retry, resume, deadlines, and cancellation tested.
-Windows verification: 298 passed, 2 Linux TCP tests skipped.
+H1.4 disk-backed piece store implemented; review and merge pending.
+Intended branch: `majid/s1-storage`. Verified block assembly, corruption
+detection and retry, verified-only sharing, short pieces, seed loading, and resume.
+Windows verification: 277 passed, 2 Linux TCP tests skipped.
 Linux runtime results have not been independently verified here.
-Gate S1 is not yet complete: H2.1 review/merge and routed topology/evidence
-remain outstanding. Tracker discovery, multi-peer transfers, algorithm
-integration, and full event hooks remain future Sprint 2 work.
+Gate S1 is not yet complete: storage review/merge, single TCP download,
+and routed topology/evidence remain outstanding in this checkout.
 
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
