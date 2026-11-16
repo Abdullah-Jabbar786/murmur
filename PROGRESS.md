@@ -15,15 +15,18 @@ H2.1 single TCP download merged in PR #17 (`c64f3cf`). I1 verified on localhost:
 64 MiB over real TCP, all 256 piece hashes and whole-file SHA-256 matched.
 H2.2 multi-peer transfers merged in PR #18 (`418bbe5`).
 H2.3 client-server mode merged in PR #19 (`8ca36a8`).
-H2.4 peer event logging implemented; review and merge pending. Suggested pushing
-branch: `hammad/s2-events`. Verified Contract 3 lifecycle/piece events, periodic
-rates and transport snapshots, retry accounting, unknown metrics, and one final
-summary per node lifecycle. Logging is enabled with `swarm --run-dir`.
-Windows verification: 348 passed, 2 Linux TCP tests skipped.
+H2.4 peer event logging merged in PR #20 (`dbf15c8`); local main also includes
+dashboard styling commit `f35f6cd`.
+H2.5 whole-swarm Loopback tests implemented; review and merge pending. Suggested
+pushing branch: `hammad/s2-swarm-test`. One seed and ten leechers pass in swarm
+and client-server modes with independently verified files, payload accounting,
+event summaries, and resource cleanup. CI payload: 2 MiB + 37 bytes. Focused
+run: 2 passed in 4.57 seconds; each scenario asserts a runtime below 30 seconds.
+Windows verification: 350 passed, 2 Linux TCP tests skipped (full suite 68.98s).
 Linux runtime results have not been independently verified here.
 Gate S1 is not yet complete: routed topology/evidence remain outstanding.
-H2.4 review/merge, tracker discovery, algorithm integration, whole-swarm tests,
-and the ten-leecher gate remain future work.
+H2.5 review/merge, tracker discovery, algorithm integration, routed TCP swarm
+evidence, harness/dashboard integration, and the remaining Gate S2 checks are pending.
 
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
