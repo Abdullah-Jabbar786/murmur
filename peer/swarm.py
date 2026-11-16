@@ -8,6 +8,7 @@ from core.tcp import TcpTransport
 from core.transport import Transport
 from peer.node import PeerProtocolError, _Session, _identity, _timeout
 from peer.storage import PieceHashError, PieceStore
+from peer.telemetry import PeerEvents
 from peer.wire import Choke, Have, Interested, NotInterested, Piece, Request, Unchoke
 
 
@@ -32,6 +33,11 @@ class _Link:
     async def send(self, message):
         async with self.send_lock:
             await self.session.send(message)
+            if isinstance(message, (Choke, Unchoke)):
+                self.node._emit("choke" if isinstance(message, Choke) else "unchoke",
+                                peer=str(self.connection.peer_addr[0]),
+                                peer_port=self.connection.peer_addr[1],
+                                peer_id=self.remote_id.hex() if self.remote_id else None)
 
     async def upload_policy(self):
         choke = not (self.peer_interested and self.upload_allowed and self.node.uploads_enabled)
@@ -118,6 +124,7 @@ class _Link:
                         await self.node._verified(piece)
             except PieceHashError:
                 self.node.hash_failures += 1
+                self.node._emit("hash_fail", piece=piece)
                 self.failures[piece] = self.failures.get(piece, 0) + 1
                 if self.failures[piece] > self.node.max_piece_retries:
                     raise
@@ -147,7 +154,8 @@ class SwarmNode:
     def __init__(self, store: PieceStore, *, transport: Optional[Transport] = None,
                  peer_id: Optional[bytes] = None, io_timeout: float = 30.0,
                  request_timeout: float = 15.0, max_piece_retries: int = 2,
-                 mode: str = "swarm", is_seed: bool = False, seed_address=None):
+                 mode: str = "swarm", is_seed: bool = False, seed_address=None,
+                 event_log=None, sample_interval: float = 1.0):
         if store.closed:
             raise ValueError("store must be open")
         if mode not in ("swarm", "client_server"):
@@ -169,6 +177,7 @@ class SwarmNode:
         self._mode, self._is_seed, self._seed_address = mode, is_seed, seed_address
         _timeout(io_timeout)
         _timeout(request_timeout)
+        _timeout(sample_interval)
         if type(max_piece_retries) is not int or max_piece_retries < 0:
             raise ValueError("max_piece_retries must be a nonnegative integer")
         self.store, self.peer_id = store, _identity(peer_id)
@@ -186,6 +195,11 @@ class SwarmNode:
         self._complete = asyncio.Event()
         if store.complete:
             self._complete.set()
+        self._events = PeerEvents(self, event_log, interval=sample_interval) if event_log is not None else None
+
+    def _emit(self, kind, **fields):
+        if self._events is not None:
+            self._events.emit(kind, **fields)
 
     @property
     def mode(self):
@@ -223,6 +237,9 @@ class SwarmNode:
         await self.transport.listen(address)
         self._address = getattr(self.transport, "local_addr", None) or address
         self._accept_task = asyncio.create_task(self._accept())
+        if self._events is not None:
+            self._events.start()
+            self._events.raise_if_failed()
 
     def _launch(self, connection, outgoing, ready=None):
         task = asyncio.create_task(self._run_link(_Link(self, connection, outgoing), ready))
@@ -259,6 +276,8 @@ class SwarmNode:
     async def _run_link(self, link, ready):
         reader = None
         try:
+            if self._events is not None:
+                self._events.opened(link.connection)
             link.available = await link.session.handshake()
             link.remote_id = link.session.remote_id
             old = self._links.get(link.remote_id)
@@ -295,6 +314,8 @@ class SwarmNode:
                 reader.cancel()
                 await asyncio.gather(reader, return_exceptions=True)
             await link.close()
+            if self._events is not None:
+                self._events.closed(link.connection)
             if self._links.get(link.remote_id) is link:
                 del self._links[link.remote_id]
             self._wake_all()
@@ -304,7 +325,10 @@ class SwarmNode:
             link.wake.set()
 
     async def _verified(self, piece):
+        self._emit("have", piece=piece, initial=False)
         if self.store.complete:
+            if self._events is not None:
+                self._events.complete()
             self._complete.set()
         # A failed neighbor must not stop delivery to the other neighbors.
         links = list(self._links.values())
@@ -330,6 +354,8 @@ class SwarmNode:
     async def wait_complete(self, timeout=30.0):
         _timeout(timeout)
         await asyncio.wait_for(self._complete.wait(), timeout)
+        if self._events is not None:
+            self._events.raise_if_failed()
         if not self.store.complete:
             raise RuntimeError("node closed before completing")
 
@@ -349,3 +375,5 @@ class SwarmNode:
         await self.transport.close()
         self._address = None
         self._complete.set()
+        if self._events is not None:
+            await self._events.finish()

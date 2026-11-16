@@ -137,8 +137,9 @@ connects (default 1800 seconds), not the subsequent period of serving.
 ## Remaining work
 
 Connections are explicit. Tracker discovery, reconnect scheduling, rarest-first
-and pipelining integration, timed choking, and full event hooks remain separate
-work. H2.3's optional [client-server mode](client-server-mode.md) now restricts
+and pipelining integration and timed choking remain separate work.
+H2.4 [peer event logging](peer-events.md) is available through `--run-dir`.
+H2.3's optional [client-server mode](client-server-mode.md) restricts
 leechers to origin-only downloads and zero payload uploads. These three-peer
 tests do not establish the ten-
 leecher Gate S2 or the routed topology/evidence required for Gate S1.
