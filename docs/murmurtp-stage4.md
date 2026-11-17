@@ -7,9 +7,10 @@ remain available for comparison. The v1 wire header is unchanged.
 
 This completes the timing portion of A3.1, merged in PR #26 (`5f74697`).
 [Stage 5](murmurtp-stage5.md) adds slow start, AIMD and congestion-window
-responses. Stage 4 itself still uses the fixed 1..32 packet window;
-flow control, final MurmurTransport/swarm selection, topology and experiments
-are separate work. This does not complete Gate S3 or all of A3.1.
+responses. Stage 4 itself still uses the fixed 1..32 packet window.
+Stage 6 adds flow control. Final MurmurTransport/swarm selection, topology and
+experiments are separate work. Stage 4 alone implements only the timing part
+of A3.1, and does not complete Gate S3.
 
 ## Timing rules
 
@@ -74,11 +75,11 @@ $testTemp = Join-Path $env:TEMP ("murmur-tests-" + [guid]::NewGuid().ToString("N
 ```
 
 No manual peers, dataset, dashboard, topology or Ubuntu setup is needed.
-Expected with the Stage 5 extensions: **59 passed** (41 timing cases, twelve
-property cases and six deterministic cancellation cases). At the Stage 4 commit,
+Expected with the Stage 6 extensions: **63 passed** (41 timing cases, fourteen
+property cases and eight deterministic cancellation cases). At the Stage 4 commit,
 the full Windows/Python 3.14 suite passed
 with **454 passed, 2 existing Linux TCP skips** in 116.59 seconds, treating
-warnings as errors. Python 3.10 syntax checks passed. See the Stage 5 guide for
+warnings as errors. Python 3.10 syntax checks passed. See the Stage 6 guide for
 current validation; no independent local Linux runtime run is claimed.
 
 The tests cover exact estimator vectors and bounds, invalid inputs, Karn's rule
@@ -86,6 +87,6 @@ for both retry types, SACK/cumulative ACK deduplication, staggered timeout round
 unchanged in-flight deadlines, lost DATA and FIN recovery, stable EOF and
 resource cleanup. A real UDP case increases the path delay and requires the
 measured SRTT and RTO to rise. Randomized duplex and total-loss cases cover all
-five transports, with deterministic partial/final ACK cancellation tests on
-Stages 3..5. These localhost checks establish correctness, not routed RTT
+six transports, with deterministic partial/final ACK cancellation tests on
+Stages 3..6. These localhost checks establish correctness, not routed RTT
 accuracy, congestion fairness or experiment performance.

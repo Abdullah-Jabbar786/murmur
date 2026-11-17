@@ -5,9 +5,10 @@
 adaptive RTO and Stage 3's selective repeat without changing the v1 header.
 Earlier transports remain available as baselines.
 
-This implements the remaining congestion-control part of A3.1. Review and
-Linux CI remain pending. Gate S3 still requires flow control, final transport
-and swarm integration, routed acceptance and experiment evidence.
+This implements the remaining congestion-control part of A3.1, merged in
+PR #27 (`7d2fa45`). [Stage 6](murmurtp-stage6.md) adds flow control. Gate S3
+still requires final transport and swarm integration, routed acceptance and
+experiment evidence.
 
 ## Rules from MASTER_PLAN section 6.6
 
@@ -80,14 +81,14 @@ $testTemp = Join-Path $env:TEMP ("murmur-tests-" + [guid]::NewGuid().ToString("N
 .\.venv\Scripts\python.exe -m pytest tests/test_murmurtp_congestion.py tests/test_murmurtp_cancellation.py tests/test_murmurtp_properties.py -v -p no:cacheprovider --basetemp="$testTemp"
 ```
 
-Expected: **31 passed** (13 congestion tests, six deterministic cancellation
-cases and twelve randomized property cases). No manual peers, Ubuntu, topology
+Expected with Stage 6 extensions: **35 passed** (13 congestion tests, eight deterministic
+cancellation cases and fourteen randomized property cases). No manual peers, Ubuntu, topology
 or dashboard are required.
 
-Verification on Windows/Python 3.14: **471 passed, 2 existing Linux TCP skips**
+Verification at the Stage 5 commit on Windows/Python 3.14: **471 passed, 2 existing Linux TCP skips**
 in 123.88 seconds for the full suite with warnings treated as errors. All five
-changed Python files pass Python 3.10 syntax checks. Stage 5 Linux/Python 3.11
-runtime verification remains for GitHub CI after pushing.
+changed Python files passed Python 3.10 syntax checks. See Stage 6 for the
+current verification results; no independent local Linux execution is claimed.
 
 The congestion tests check exact growth formulas, threshold transitions,
 duplicate ACK suppression, recovery boundaries, multi-gap selective retries,

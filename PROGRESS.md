@@ -65,7 +65,8 @@ ACK/cancel regressions. At the Stage 4 commit, verification comprised
 41 new timing cases plus 14 property/cancellation cases.
 Full Windows/Python 3.14 suite: 454 passed, 2 Linux TCP tests skipped in 116.59s,
 with warnings treated as errors. Python 3.10 syntax checks passed.
-A3.1 congestion portion implemented as separate Stage 5 CongestionTransport:
+A3.1 congestion portion merged in PR #27 (`7d2fa45`), pulled into local main.
+Separate Stage 5 CongestionTransport provides:
 initial 10-packet window, slow start, additive increase, one SACK reduction per
 recovery boundary and one reset per timeout round. New DATA admission respects
 both floor(cwnd) and the configured sequence horizon. Stats report cwnd in bytes.
@@ -73,12 +74,24 @@ Focused congestion tests: 13 passed in 2.93s. The 1 MiB acceptance case at 2%
 outgoing loss on both localhost UDP endpoints verified SHA-256 and repeated
 window growth/reductions; CSV trace is saved in pytest's temporary directory.
 Randomized duplex/total-loss properties now cover Stages 1..5; deterministic
-ACK/cancel regressions cover Stages 3..5. A3.1 code is implemented; Stage 5 review,
-merge and Linux CI remain pending. A3.2 flow control and final transport/events
-integration are next. No routed E4 or fairness result is claimed.
-Final Windows/Python 3.14 verification: 471 passed, 2 existing Linux TCP skips
+ACK/cancel regressions at that commit covered Stages 3..5. A3.1 is merged.
+No routed E4 or fairness result is claimed.
+Stage 5 Windows/Python 3.14 verification: 471 passed, 2 existing Linux TCP skips
 in 123.88s with warnings treated as errors. The five changed Python files pass
 Python 3.10 syntax checks. Git diff whitespace checks pass.
+A3.2 first portion implemented as Stage 6 FlowControlTransport: advertised
+receive slots limit new sends alongside cwnd and the sequence horizon. Reads
+reopen the window with ACK updates; empty-DATA persist probes use the frozen
+one-second default without consuming bytes/sequence numbers. Zero-window DATA
+timers pause, while inactivity still bounds stalled readers. Tests cover lost
+updates/replies, partial-slot reads, buffer bounds, cancellation, shutdown and
+FIN with unread data. Properties now cover Stages 1..6 and ACK/cancel regressions
+Stages 3..6. Stage 6 review/merge and Linux CI remain pending. Final transport,
+event integration and swarm selection are the remaining local A3.2 work.
+Stage 6 Windows/Python 3.14 full regression run: 496 passed, 2 existing Linux TCP
+skips in 136.14s. Final review added the TIME_WAIT idle-timer guard/regression;
+final focused verification: 44 passed in 31.75s. Both runs used warnings as errors.
+Five changed Python files pass Python 3.10 syntax checks; Linux CI pending.
 Gate S1 is not yet complete: routed topology/evidence remain outstanding.
 Remaining transport work, tracker discovery, routed TCP swarm
 evidence, harness/dashboard integration, and the remaining Gate S2 checks are pending.

@@ -9,6 +9,7 @@ from hypothesis import example, given, settings, strategies as st
 from murmurtp.connection import StopAndWaitConfig
 from murmurtp.adaptive import AdaptiveRtoConfig, AdaptiveRtoTransport
 from murmurtp.congestion import CongestionTransport
+from murmurtp.flow import FlowControlConfig, FlowControlTransport
 from murmurtp.header import DATA, MSS
 from murmurtp.lossy import LossConfig
 from murmurtp.sack import SelectiveRepeatTransport
@@ -71,10 +72,12 @@ def make_endpoint(stage, *, window=16, buffer_slots=64, seed=0, inactivity=3):
                   receive_buffer=buffer_slots * MSS, inactivity_timeout=inactivity)
     if stage == 1:
         return StopAndWaitTransport(config=StopAndWaitConfig(**values), seed=seed)
-    if stage in (4, 5):
-        transport = AdaptiveRtoTransport if stage == 4 else CongestionTransport
-        return transport(config=AdaptiveRtoConfig(
-            window_packets=window, min_rto=0.005, clock_granularity=0.001, **values), seed=seed)
+    if stage in (4, 5, 6):
+        transport = {4: AdaptiveRtoTransport, 5: CongestionTransport, 6: FlowControlTransport}[stage]
+        config_type = FlowControlConfig if stage == 6 else AdaptiveRtoConfig
+        extra = {"probe_interval": .01} if stage == 6 else {}
+        return transport(config=config_type(window_packets=window, min_rto=0.005,
+            clock_granularity=0.001, **values, **extra), seed=seed)
     transport = SlidingWindowTransport if stage == 2 else SelectiveRepeatTransport
     return transport(config=SlidingWindowConfig(window_packets=window, **values), seed=seed)
 
@@ -153,7 +156,7 @@ async def exercise_transfer(stage, case):
         await dispose((server, client), tasks)
 
 
-@pytest.mark.parametrize("stage", [1, 2, 3, 4, 5])
+@pytest.mark.parametrize("stage", [1, 2, 3, 4, 5, 6])
 @settings(max_examples=20, derandomize=True, database=None, deadline=None)
 @example(case=EMPTY)
 @example(case=BOUNDARIES)
@@ -249,7 +252,7 @@ async def total_loss(stage, window, seed, data):
         await dispose((server, client), tasks)
 
 
-@pytest.mark.parametrize("stage", [1, 2, 3, 4, 5])
+@pytest.mark.parametrize("stage", [1, 2, 3, 4, 5, 6])
 @settings(max_examples=8, derandomize=True, database=None, deadline=None)
 @given(window=st.sampled_from([1, 4, 32]), seed=st.integers(0, 2**32 - 1),
        data=st.binary(min_size=1, max_size=2 * MSS + 1))
