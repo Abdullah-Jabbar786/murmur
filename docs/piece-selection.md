@@ -51,4 +51,6 @@ Selection order:
 
 Run `python -m pytest tests/test_swarm_piece_selection.py -v -p no:cacheprovider`.
 There are 14 cases, including a property test over 150 randomized swarm snapshots.
-The Windows full suite currently gives 66 passed and 2 existing Linux TCP skips.
+The initial A1.4 Windows suite gave 66 passed and 2 existing Linux TCP skips.
+A2.1 now integrates this selector into the running swarm; see
+[algorithm-integration.md](algorithm-integration.md) for configuration and tests.

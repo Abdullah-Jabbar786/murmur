@@ -63,8 +63,9 @@ not to the entire repository's growing test suite.
 ## What this establishes
 
 H2.5 checks whole-swarm correctness and cleanup on the in-memory transport.
-It does **not** establish Gate S2 by itself: routed TCP, rarest-first and timed
-choking integration, pipelining, tracker discovery, captures, the unattended
-harness, and dashboard evidence still require their own work. Linux topology
+The same tests now run with A2.1's rarest-first selection, timed choking, and
+pipelining enabled. They do **not** establish Gate S2 by themselves: routed TCP,
+tracker discovery, captures, the unattended harness, and dashboard evidence
+still require their own work. Linux topology
 and network evidence also remain outstanding for Gate S1. No real link-speed
 or E3 performance claims are made from Loopback timing.

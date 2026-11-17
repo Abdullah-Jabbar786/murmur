@@ -11,7 +11,7 @@ Default configuration remains `"mode": "swarm"`.
 |---|---|
 | JSON `"mode": "swarm"` | Peers may share verified pieces with neighbors |
 | JSON `"mode": "client_server"` | Only the designated origin seed uploads payload |
-| `--config path.json` | Load a JSON config for the swarm command; currently its distribution `mode` is used |
+| `--config path.json` | Load distribution mode plus A2.1 pipeline/choking settings |
 | `--distribution-mode swarm` or `client_server` | Override the config's distribution mode |
 | `--mode create`, `resume`, or `seed` | Existing file-opening option; separate from distribution mode |
 | `--origin-seed IPv4:port` | Sole permitted destination for a client-server leecher |
@@ -19,8 +19,10 @@ Default configuration remains `"mode": "swarm"`.
 Without `--config`, the swarm command reads `config/default.json`. An explicitly
 supplied config must exist and be a JSON object. Invalid modes and missing or
 conflicting origin-seed options are rejected before creating a download file.
-Other config fields, including transport selection, are not wired into this CLI
-by H2.3; the CLI still uses TCP. The original `seed` and `download` commands
+The CLI also reads `pipelining_depth`, `unchoke_slots`, `choke_interval`,
+`optimistic_unchoke_interval`, and optional `seed` for algorithm tie-breaking.
+See [algorithm-integration.md](algorithm-integration.md). Transport selection
+is not wired into this CLI; it still uses TCP. The original `seed` and `download` commands
 remain the H2.1 baseline and do not read these new swarm options.
 
 The origin seed uses `--mode seed`, which verifies an existing complete file.

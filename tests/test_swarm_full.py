@@ -114,6 +114,7 @@ async def test_one_seed_ten_leechers_complete_and_release_resources(tmp_path, mo
         assert registry.lookup(addresses[index]) is None
         assert not node._links and not node._claims and not node._tasks
         assert node._accept_task.done() and node._events._task.done()
+        assert node._policy_task.done()
         assert node._events._connections == {}
         assert stores[index].closed
         with open(logs[index].file_path, encoding="utf-8") as stream:

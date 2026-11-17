@@ -34,8 +34,12 @@ def check_schema(rows):
         assert isinstance(row["t"], float) and math.isfinite(row["t"])
         assert row["node"] == "127.0.0.1"
         kind = row["type"]
-        if kind in ("have", "hash_fail"):
+        if kind in ("have", "hash_fail", "piece_select"):
             assert type(row["piece"]) is int and row["piece"] >= 0
+            if kind == "piece_select":
+                assert type(row["availability"]) is int and row["availability"] >= 1
+                assert type(row["started"]) is bool
+                assert isinstance(row["peer"], str)
         elif kind == "rate":
             assert all(type(row[key]) is int and row[key] >= 0 for key in ("up_bps", "down_bps"))
         elif kind == "transport":
@@ -137,11 +141,12 @@ async def test_corruption_logs_hash_failure_before_verified_have(tmp_path, monke
         await leecher.close()
         rows = records(logs[1])
         failure = next(i for i, r in enumerate(rows) if r["type"] == "hash_fail")
-        verified = next(i for i, r in enumerate(rows) if r["type"] == "have" and r["piece"] == 0)
+        verified = next(i for i, r in enumerate(rows)
+                        if r["type"] == "have" and r["piece"] == corrupted[0])
         assert failure < verified
         assert rows[-1]["hash_fails"] == 1
         assert rows[-1]["bytes_down"] == len(DATA) + META.piece_length
-        assert sum(r["type"] == "have" and r["piece"] == 0 for r in rows) == 1
+        assert sum(r["type"] == "have" and r["piece"] == corrupted[0] for r in rows) == 1
 
 
 async def test_default_sampler_runs_once_a_second_and_seed_logs_idle_rates(tmp_path):

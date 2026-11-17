@@ -21,7 +21,7 @@ Sending a big file from one server to many clients is limited by the server's ba
 |---|---|---|---|
 | S0 | Sprint 0 | Kickoff: repo settings, hygiene, contracts, one merged PR each | complete (team confirmation) |
 | S1 | Sprint 1 | Foundations: topology, tracker, TcpTransport, codecs, loss shim | in progress: A1.1–A1.6, H1.1–H1.4 and H2.1 merged; topology/evidence pending |
-| S2 | Sprint 2 | TCP swarm: 1 seed + 10 leechers over TCP, rarest-first, choking | in progress: H2.1–H2.4 merged; H2.5 whole-swarm Loopback tests implemented |
+| S2 | Sprint 2 | TCP swarm: 1 seed + 10 leechers over TCP, rarest-first, choking | in progress: H2.1–H2.5 merged; A2.1 algorithm integration implemented, review pending |
 | S3 | Sprint 3 | MurmurTP in swarm: completes at 5% loss, one config flag | not started |
 | S4 | Sprint 4 | Experiments: E1 to E5 tables filled, 3 runs each, graphs | not started |
 | S5 | Sprint 5 | Polish: stretch goal, report, demo, fresh-VM test, v1.0 | not started |
@@ -54,6 +54,7 @@ Bidirectional multi-peer transfers and three-terminal demo: [docs/multi-peer.md]
 Origin-only downloads and zero leecher payload uploads: [docs/client-server-mode.md](docs/client-server-mode.md).
 Peer lifecycle events, transfer rates, and final summaries: [docs/peer-events.md](docs/peer-events.md).
 One seed and ten leechers in CI: [docs/whole-swarm-test.md](docs/whole-swarm-test.md).
+Live rarest-first selection, timed upload slots and request windows: [docs/algorithm-integration.md](docs/algorithm-integration.md).
 
 ## Repo layout
 

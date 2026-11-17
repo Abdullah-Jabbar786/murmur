@@ -17,15 +17,18 @@ H2.2 multi-peer transfers merged in PR #18 (`418bbe5`).
 H2.3 client-server mode merged in PR #19 (`8ca36a8`).
 H2.4 peer event logging merged in PR #20 (`dbf15c8`); local main also includes
 dashboard styling commit `f35f6cd`.
-H2.5 whole-swarm Loopback tests implemented; review and merge pending. Suggested
-pushing branch: `hammad/s2-swarm-test`. One seed and ten leechers pass in swarm
-and client-server modes with independently verified files, payload accounting,
-event summaries, and resource cleanup. CI payload: 2 MiB + 37 bytes. Focused
-run: 2 passed in 4.57 seconds; each scenario asserts a runtime below 30 seconds.
-Windows verification: 350 passed, 2 Linux TCP tests skipped (full suite 68.98s).
+H2.5 whole-swarm Loopback tests merged in PR #21 (`ac7eed2`).
+A2.1 algorithm integration implemented; review and merge pending. SwarmNode
+uses live rarest-first selection, partial-piece priority, exclusive reservations,
+configurable 1..32 request windows (default 16), and timed 4+1 upload slots.
+The swarm CLI reads pipeline/choking settings; piece_select events expose choices.
+New focused tests: 13 passed. One seed and ten leechers still pass in swarm and
+client-server modes with independent hashes, payload accounting, and cleanup.
+CI payload: 2 MiB + 37 bytes; each scenario asserts a runtime below 30 seconds.
+Windows verification: 363 passed, 2 Linux TCP tests skipped (full suite 62.23s).
 Linux runtime results have not been independently verified here.
 Gate S1 is not yet complete: routed topology/evidence remain outstanding.
-H2.5 review/merge, tracker discovery, algorithm integration, routed TCP swarm
+A2.1 review/merge, tracker discovery, routed TCP swarm
 evidence, harness/dashboard integration, and the remaining Gate S2 checks are pending.
 
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |

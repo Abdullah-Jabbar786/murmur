@@ -80,15 +80,18 @@ while the initial bitfield was in flight.
 
 Each connection has one reader and one download worker; sends are serialized.
 The worker sends INTERESTED while the neighbor has missing pieces, waits for
-UNCHOKE, and keeps at most one block request in flight. When no useful pieces
+UNCHOKE, and pipelines up to 16 block requests by default (configurable 1..32).
+When no useful pieces
 remain it sends NOT_INTERESTED. Each piece is reserved to one source at a time;
-different neighbors can supply different pieces concurrently. The baseline
-finishes partial pieces first, then chooses ascending piece indices.
+different neighbors can supply different pieces concurrently. A2.1 finishes
+partial pieces first, then chooses rarest pieces using current neighbor
+availability and seeded tie-breaking. The window can span several pieces.
 
-Uploads use verified data only. The default policy unchokes interested peers;
-timed slot/rate selection is still A2.1. API `set_upload_allowed(peer_id, bool)`
-explicitly sends CHOKE/UNCHOKE. CHOKE abandons an outstanding request and releases
-its reservation. A late matching block is ignored; requests crossing CHOKE in
+Uploads use verified data only. A2.1 applies four regular slots reviewed every
+10 seconds and one optimistic slot rotated every 30 seconds. API
+`set_upload_allowed(peer_id, bool)` gates eligibility for that policy; enabling
+a peer does not guarantee a slot. CHOKE abandons pending requests and releases
+their reservations. A late matching block is ignored; requests crossing CHOKE in
 transit are discarded by the uploader. Abandoned-request bookkeeping is bounded
 at 64 unresolved keys per connection. Unsolicited/mismatched blocks close the
 session rather than being written.
@@ -129,15 +132,17 @@ are not counted as received. Closing is idempotent and wakes incomplete waiters
 with an error.
 
 Use one asyncio loop and serialize external store access. Storage I/O is
-synchronous. Defaults are 30 seconds per frame/send and 15 seconds per block
-request. Idle connections can expire after the frame timeout; the listener
-remains available. CLI `--total-timeout` bounds the completion wait after initial
+synchronous. Defaults are 30 seconds for handshake frames/sends and 15 seconds
+per outstanding block request. Established idle sessions stay open while
+waiting for an optimistic slot; closing the node cancels their readers.
+CLI `--total-timeout` bounds the completion wait after initial
 connects (default 1800 seconds), not the subsequent period of serving.
 
 ## Remaining work
 
-Connections are explicit. Tracker discovery, reconnect scheduling, rarest-first
-and pipelining integration and timed choking remain separate work.
+Connections are explicit. Tracker discovery and reconnect scheduling remain
+separate work. See [algorithm-integration.md](algorithm-integration.md) for
+A2.1's rarest-first, pipelining, and timed choking behavior and tests.
 H2.4 [peer event logging](peer-events.md) is available through `--run-dir`.
 H2.3's optional [client-server mode](client-server-mode.md) restricts
 leechers to origin-only downloads and zero payload uploads. These three-peer

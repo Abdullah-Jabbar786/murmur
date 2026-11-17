@@ -137,8 +137,11 @@ async def test_corrupt_source_dropped_then_good_source_completes(tmp_path, monke
             return bytes([data[0] ^ 1]) + data[1:]
         monkeypatch.setattr(bad.store, "read_block", corrupted)
         await leecher.connect(bad.address)
+        link = leecher._links[bad.peer_id]
         await eventually(lambda: not leecher.peer_ids)
-        assert leecher.hash_failures == 3 and not leecher._claims
+        assert max(link.failures.values()) == leecher.max_piece_retries + 1
+        assert leecher.hash_failures == sum(link.failures.values())
+        assert not leecher._claims and not link.pending
         await leecher.connect(good.address)
         await leecher.wait_complete(5)
         assert leecher.store.path.read_bytes() == DATA
@@ -147,14 +150,17 @@ async def test_corrupt_source_dropped_then_good_source_completes(tmp_path, monke
 async def test_disconnect_releases_partial_piece_for_another_source(tmp_path, monkeypatch):
     async with cluster(tmp_path, [range(4), range(4), ()]) as (bad, good, leecher):
         read = bad.store.read_block
+        interrupted = []
         def disconnect(piece, offset, length):
             if offset:
+                interrupted.append(piece)
                 raise ConnectionResetError("simulated source departure")
             return read(piece, offset, length)
         monkeypatch.setattr(bad.store, "read_block", disconnect)
         await leecher.connect(bad.address)
         await eventually(lambda: not leecher.peer_ids)
-        assert leecher.store.started_pieces == frozenset({0})
+        assert leecher.store.started_pieces == frozenset(interrupted)
+        assert len(interrupted) == 1
         assert not leecher._claims
         await leecher.connect(good.address)
         await leecher.wait_complete(5)
@@ -219,10 +225,12 @@ async def test_handshake_in_progress_is_closed_on_shutdown(tmp_path):
 async def test_choke_releases_pending_request_and_ignores_late_block(tmp_path, monkeypatch):
     async with cluster(tmp_path, [range(4), ()]) as (seed, leecher):
         blocked, release, sent = asyncio.Event(), asyncio.Event(), asyncio.Event()
+        delayed_keys = []
         original = swarm._Link.send
 
         async def delayed(link, message):
             if link.node is seed and isinstance(message, Piece) and not sent.is_set():
+                delayed_keys.append((message.piece, message.offset, len(message.data)))
                 blocked.set()
                 await release.wait()
                 await original(link, message)
@@ -237,7 +245,8 @@ async def test_choke_releases_pending_request_and_ignores_late_block(tmp_path, m
         await eventually(lambda: not leecher._claims)
         release.set()
         await asyncio.wait_for(sent.wait(), 2)
-        await eventually(lambda: not leecher._links[seed.peer_id].retired)
+        await eventually(lambda: delayed_keys[0] not in leecher._links[seed.peer_id].retired)
+        assert not leecher._links[seed.peer_id].pending
         assert leecher.bytes_received == 0
         assert not leecher.store.started_pieces
         await seed.set_upload_allowed(leecher.peer_id, True)
