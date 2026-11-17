@@ -47,7 +47,7 @@ Client / Seed / Leecher
 |---|---|---|---|
 | S0 | Sprint 0 | Repo setup, hygiene, contracts, one merged PR each | complete |
 | S1 | Sprint 1 | Topology, tracker, transport, codecs, loss shim | in progress |
-| S2 | Sprint 2 | TCP swarm with rarest-first and choking | in progress |
+| S2 | Sprint 2 | TCP swarm with rarest-first and choking | in progress: H2.1–H2.5 merged; A2.1 algorithm integration implemented, review pending |
 | S3 | Sprint 3 | MurmurTP swarm at 5% loss, one config flag | planned |
 | S4 | Sprint 4 | E1–E5 experiments and graphs | planned |
 | S5 | Sprint 5 | Report, demo, verification, polishing | planned |
@@ -84,6 +84,7 @@ See the docs for the full design and workflow:
 - [docs/client-server-mode.md](docs/client-server-mode.md)
 - [docs/peer-events.md](docs/peer-events.md)
 - [docs/whole-swarm-test.md](docs/whole-swarm-test.md)
+- [docs/algorithm-integration.md](docs/algorithm-integration.md)
 
 ## Repo layout
 

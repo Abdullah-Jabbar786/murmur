@@ -281,7 +281,12 @@ async def _run_cli(args) -> None:
             event_log = (resources.enter_context(EventLog(args.host, args.run_dir))
                          if args.run_dir is not None else None)
             node = SwarmNode(store, io_timeout=args.io_timeout, mode=distribution_mode,
-                             is_seed=is_seed, seed_address=args.origin_seed, event_log=event_log)
+                             is_seed=is_seed, seed_address=args.origin_seed, event_log=event_log,
+                             pipelining_depth=config.get("pipelining_depth", 16),
+                             unchoke_slots=config.get("unchoke_slots", 4),
+                             choke_interval=config.get("choke_interval", 10.0),
+                             optimistic_unchoke_interval=config.get("optimistic_unchoke_interval", 30.0),
+                             random_seed=config.get("seed", 0))
             try:
                 await node.start((args.host, args.port))
                 print(f"Peer listening on {node.address[0]}:{node.address[1]}", flush=True)
@@ -346,7 +351,7 @@ def main() -> None:
                 sub.add_argument("--peer", type=_endpoint, action="append", default=[])
                 sub.add_argument("--mode", choices=("create", "resume", "seed"), default="create")
                 sub.add_argument("--total-timeout", type=float, default=1800.0)
-                sub.add_argument("--config", help="JSON config; its mode selects distribution behavior")
+                sub.add_argument("--config", help="JSON distribution mode, pipeline, and choking settings")
                 sub.add_argument("--distribution-mode", choices=("swarm", "client_server"),
                                  help="override the JSON mode setting")
                 sub.add_argument("--origin-seed", type=_endpoint,

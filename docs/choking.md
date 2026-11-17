@@ -1,8 +1,9 @@
 # Choking and optimistic unchoking (A1.5)
 
 `peer/choking.py` implements the master plan's four regular unchoke slots plus
-one optimistic slot. It returns decisions; `peer/node.py` will send messages
-and write events when that integration is implemented.
+one optimistic slot. It returns decisions; A2.1's `peer/swarm.py` applies them
+to sessions and logs outgoing messages through the `peer.node swarm` command.
+See [algorithm-integration.md](algorithm-integration.md) for the running policy.
 
 ```python
 from core.config import load_config

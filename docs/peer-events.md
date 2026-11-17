@@ -55,6 +55,7 @@ Every row contains `t`, `node`, and `type`, using the existing Contract 3 names:
 | `join` | Peer starts; includes mode, origin_seed and initial_complete |
 | `have` | A verified piece is present; includes piece and initial |
 | `hash_fail` | A completed piece failed SHA-256; includes piece |
+| `piece_select` | A2.1 additive event: newly reserved piece, availability count, started flag and source peer IP |
 | `choke` / `unchoke` | A CHOKE/UNCHOKE message was successfully sent to a neighbor |
 | `complete` | All pieces are verified; emitted once per node lifecycle |
 | `rate` | Payload down_bps/up_bps, sampled every second by default |
