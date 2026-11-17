@@ -38,7 +38,8 @@ packet deadlines, selective timeout retries and the three-later-SACK gap rule.
 Stage 3 focused tests: 15 passed in 19.03s. A2.2 acceptance: 64 MiB over localhost
 UDP with 5% loss, 5% reorder and 1% duplication on both endpoints, SHA-256 and
 payload counters verified (acceptance case 17.76s).
-A2.3 randomized transport properties implemented; review and merge pending.
+A2.3 randomized transport properties and cancellation fix merged in PR #25
+(`a7a0f75`) and pulled into local main. Both CI checks passed per team confirmation.
 Initial focused run: 8 passed in 13.90s, covering 108 generated and 9 explicit examples.
 Verified exact duplex streams across Stages 1..3 with independent impairments,
 MSS/send/read boundaries, small buffers, stable EOF and payload accounting;
@@ -47,14 +48,26 @@ are cleaned up. Initial Windows full suite: 407 passed, 2 Linux TCP tests skippe
 PR #25 Linux/Python 3.11 CI then exposed a lost-cancellation race in Stage 3's
 ACK wait. Replaced that wait with cancellation-propagating asyncio.wait and
 explicit child-task cleanup; added two deterministic ACK/cancel regressions
-and retained both CI seeds. Properties now cover 108 generated + 13 explicit
-examples. Adaptive timing/congestion/flow control remain later work.
+and retained both CI seeds. At merge, properties covered 108 generated + 13 explicit
+examples. Congestion/flow control remain later work.
 Cancellation-fix verification: 25 focused tests passed; Windows full suite
 409 passed, 2 Linux TCP tests skipped in 115.03s. Python 3.10 syntax checks pass.
-The fixed commit still needs its Linux/Python 3.11 CI rerun after pushing.
-Linux runtime results have not been independently verified here.
+The team confirmed the fixed commit's Linux/Python 3.11 CI passed before merging;
+that CI run has not been independently inspected here.
+A3.1 timing portion implemented as separate Stage 4 AdaptiveRtoTransport:
+Jacobson/Karels SRTT/RTTVAR, 1s initial RTO with 200ms..5s bounds, Karn's rule
+for timeout and fast retries, and exponential backoff once per timeout round.
+DATA deadlines remain independent; FIN uses learned timing. Stats expose SRTT,
+variation, current RTO and sample count. Stage 1..3 baselines remain available.
+Stage 4 is included in randomized duplex/total-loss properties and deterministic
+ACK/cancel regressions. Slow start, AIMD and congestion responses are next;
+A3.1 as a whole is not complete. Stage 4 review and merge are pending.
+Verification: 41 new timing cases plus 14 property/cancellation cases pass.
+Full Windows/Python 3.14 suite: 454 passed, 2 Linux TCP tests skipped in 116.59s,
+with warnings treated as errors. Python 3.10 syntax checks pass. Stage 4 still
+needs GitHub's Linux/Python 3.11 CI checks after pushing.
 Gate S1 is not yet complete: routed topology/evidence remain outstanding.
-A2.3 review/merge and remaining transport work, tracker discovery, routed TCP swarm
+Remaining transport work, tracker discovery, routed TCP swarm
 evidence, harness/dashboard integration, and the remaining Gate S2 checks are pending.
 
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |

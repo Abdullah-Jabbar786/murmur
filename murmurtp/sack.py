@@ -56,6 +56,7 @@ class SelectiveRepeatConnection(SlidingWindowConnection):
                     break
                 chunk = self._pending.pop(seq)
                 if seq not in self._sacked:
+                    self._acknowledged(seq)
                     self._inflight -= len(chunk)
                 self._sacked.discard(seq)
                 self._flights.pop(seq, None)
@@ -63,6 +64,7 @@ class SelectiveRepeatConnection(SlidingWindowConnection):
                 if header.sack_mask & (1 << bit):
                     seq = header.cum_ack + 1 + bit
                     if seq in self._pending and seq not in self._sacked:
+                        self._acknowledged(seq)
                         self._sacked.add(seq)
                         self._inflight -= len(self._pending[seq])
                         self._flights.pop(seq, None)
@@ -73,10 +75,22 @@ class SelectiveRepeatConnection(SlidingWindowConnection):
             return
         super()._handle(header, payload)
 
+    def _new_flight(self, seq):
+        return _Flight(self.owner._loop.time() + self.config.initial_rto, self.config.initial_rto)
+
+    def _acknowledged(self, seq):
+        """Hook for timing a newly acknowledged DATA packet before removing it."""
+
+    def _on_timeout_batch(self, expired):
+        """Hook for connection-wide state when one or more packet timers expire."""
+
+    def _retry_rto(self, flight, timeout):
+        return min(2 * flight.rto, self.config.max_rto) if timeout else flight.rto
+
     def _retry(self, seq, *, timeout):
         flight = self._flights[seq]
+        flight.rto = self._retry_rto(flight, timeout)
         if timeout:
-            flight.rto = min(2 * flight.rto, self.config.max_rto)
             self._timeout_retx += 1
         else:
             flight.fast_retransmitted = True
@@ -85,6 +99,17 @@ class SelectiveRepeatConnection(SlidingWindowConnection):
         self._retx += 1
         self._rto = flight.rto
         flight.deadline = self.owner._loop.time() + flight.rto
+
+    def _retry_due(self, now):
+        expired = {seq for seq, flight in self._flights.items() if now >= flight.deadline}
+        if expired:
+            self._on_timeout_batch(expired)
+        for seq, flight in self._flights.items():
+            if seq in expired:
+                self._retry(seq, timeout=True)
+            elif (not flight.fast_retransmitted
+                  and sum(later > seq for later in self._sacked) >= 3):
+                self._retry(seq, timeout=False)
 
     async def _wait_for_ack(self, timeout):
         # Python 3.10/3.11 wait_for can swallow caller cancellation if its
@@ -121,20 +146,13 @@ class SelectiveRepeatConnection(SlidingWindowConnection):
                         chunk = data[offset:offset + MSS]
                         seq = self._tx_seq
                         self._pending[seq] = chunk
-                        self._flights[seq] = _Flight(
-                            self.owner._loop.time() + self.config.initial_rto, self.config.initial_rto)
+                        self._flights[seq] = self._new_flight(seq)
                         self._tx_seq += 1
                         offset += len(chunk)
                         self._bytes_sent += len(chunk)
                         self._inflight += len(chunk)
                         self._send_packet(DATA, seq=seq, payload=chunk)
-                    now = self.owner._loop.time()
-                    for seq, flight in self._flights.items():
-                        if now >= flight.deadline:
-                            self._retry(seq, timeout=True)
-                        elif (not flight.fast_retransmitted
-                              and sum(later > seq for later in self._sacked) >= 3):
-                            self._retry(seq, timeout=False)
+                    self._retry_due(self.owner._loop.time())
                     # Every nonempty window has an unsacked cumulative head.
                     deadline = min(f.deadline for f in self._flights.values())
                     await self._wait_for_ack(max(0, deadline - self.owner._loop.time()))
