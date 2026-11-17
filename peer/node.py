@@ -252,6 +252,7 @@ async def _run_cli(args) -> None:
 
         from core.config import load_config
         from core.events import EventLog
+        from core.transports import create_transport, transport_port
         from peer.swarm import SwarmNode
 
         if args.config is not None and not Path(args.config).is_file():
@@ -276,11 +277,13 @@ async def _run_cli(args) -> None:
                 peers = [args.origin_seed]
         elif args.origin_seed is not None:
             raise ValueError("--origin-seed requires client_server distribution mode")
+        port = transport_port(config, args.port)
+        transport = create_transport(config)
         with ExitStack() as resources:
             store = resources.enter_context(PieceStore(args.file, metadata, mode=args.mode))
             event_log = (resources.enter_context(EventLog(args.host, args.run_dir))
                          if args.run_dir is not None else None)
-            node = SwarmNode(store, io_timeout=args.io_timeout, mode=distribution_mode,
+            node = SwarmNode(store, transport=transport, io_timeout=args.io_timeout, mode=distribution_mode,
                              is_seed=is_seed, seed_address=args.origin_seed, event_log=event_log,
                              pipelining_depth=config.get("pipelining_depth", 16),
                              unchoke_slots=config.get("unchoke_slots", 4),
@@ -288,7 +291,7 @@ async def _run_cli(args) -> None:
                              optimistic_unchoke_interval=config.get("optimistic_unchoke_interval", 30.0),
                              random_seed=config.get("seed", 0))
             try:
-                await node.start((args.host, args.port))
+                await node.start((args.host, port))
                 print(f"Peer listening on {node.address[0]}:{node.address[1]}", flush=True)
                 for address in peers:
                     await node.connect(address)
@@ -346,12 +349,12 @@ def main() -> None:
         sub.add_argument("--io-timeout", type=float, default=30.0)
         if name in ("seed", "swarm"):
             sub.add_argument("--host", default="127.0.0.1")
-            sub.add_argument("--port", type=int, default=6881)
+            sub.add_argument("--port", type=int, default=None if name == "swarm" else 6881)
             if name == "swarm":
                 sub.add_argument("--peer", type=_endpoint, action="append", default=[])
                 sub.add_argument("--mode", choices=("create", "resume", "seed"), default="create")
                 sub.add_argument("--total-timeout", type=float, default=1800.0)
-                sub.add_argument("--config", help="JSON distribution mode, pipeline, and choking settings")
+                sub.add_argument("--config", help="JSON transport, distribution mode, pipeline and choking settings")
                 sub.add_argument("--distribution-mode", choices=("swarm", "client_server"),
                                  help="override the JSON mode setting")
                 sub.add_argument("--origin-seed", type=_endpoint,
@@ -365,7 +368,7 @@ def main() -> None:
     args = parser.parse_args()
     port = args.seed_port if args.command == "download" else args.port
     minimum_port = 1 if args.command == "download" else 0
-    if not minimum_port <= port <= 65535:
+    if port is not None and not minimum_port <= port <= 65535:
         parser.error(f"port must be in [{minimum_port}, 65535]")
     try:
         asyncio.run(_run_cli(args))

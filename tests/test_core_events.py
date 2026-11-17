@@ -62,7 +62,7 @@ def test_event_log_with_murmur_t0(tmp_path, monkeypatch):
 def test_config_loader(tmp_path):
     # Test loading default config
     cfg = load_config()
-    assert cfg["transport"] == "loopback"
+    assert cfg["transport"] == "tcp"
     assert cfg["piece_size"] == 262144
     assert cfg["block_size"] == 16384
 

@@ -79,19 +79,34 @@ No routed E4 or fairness result is claimed.
 Stage 5 Windows/Python 3.14 verification: 471 passed, 2 existing Linux TCP skips
 in 123.88s with warnings treated as errors. The five changed Python files pass
 Python 3.10 syntax checks. Git diff whitespace checks pass.
-A3.2 first portion implemented as Stage 6 FlowControlTransport: advertised
+A3.2 first portion merged in PR #28 (`29eaedc`), pulled into local main.
+Stage 6 FlowControlTransport provides advertised
 receive slots limit new sends alongside cwnd and the sequence horizon. Reads
 reopen the window with ACK updates; empty-DATA persist probes use the frozen
 one-second default without consuming bytes/sequence numbers. Zero-window DATA
 timers pause, while inactivity still bounds stalled readers. Tests cover lost
 updates/replies, partial-slot reads, buffer bounds, cancellation, shutdown and
 FIN with unread data. Properties now cover Stages 1..6 and ACK/cancel regressions
-Stages 3..6. Stage 6 review/merge and Linux CI remain pending. Final transport,
-event integration and swarm selection are the remaining local A3.2 work.
+Stages 3..6.
 Stage 6 Windows/Python 3.14 full regression run: 496 passed, 2 existing Linux TCP
 skips in 136.14s. Final review added the TIME_WAIT idle-timer guard/regression;
 final focused verification: 44 passed in 31.75s. Both runs used warnings as errors.
 Five changed Python files pass Python 3.10 syntax checks; Linux CI pending.
+A3.2 Stage 7 implemented: public Contract 2 MurmurTransport/MurmurConnection,
+validated transport factory, TCP/MurmurTP swarm CLI selection and matching default
+ports. Default config now selects TCP (the CLI previously ignored loopback).
+Existing PeerEvents emits real MurmurTP metrics and exact final retransmission
+summaries without a second sampler. Corrected a HAVE/NOT_INTERESTED backpressure
+race exposed by the larger UDP swarm, with deterministic regression coverage.
+Focused verification: 41 passed in 45.15s; both distribution modes passed the same
+one-seed/ten-leecher test on Loopback and localhost MurmurTP (2 MiB + 37 bytes).
+Independent hashes, exact payload accounting, relay uploads, zero client-server
+leecher uploads, logs and cleanup verified. Smaller relay/event tests also pass
+at 5% loss, 5% reorder and 1% duplication. A3.2 local implementation is complete;
+Stage 7 review/merge and Linux CI remain pending. Routed A3.3 evidence is outstanding.
+Stage 7 full Windows/Python 3.14 regression: 523 passed, 2 existing Linux TCP
+skips in 182.23s with warnings treated as errors. Nine changed Python files pass
+Python 3.10 syntax checks; Git whitespace checks pass.
 Gate S1 is not yet complete: routed topology/evidence remain outstanding.
 Remaining transport work, tracker discovery, routed TCP swarm
 evidence, harness/dashboard integration, and the remaining Gate S2 checks are pending.

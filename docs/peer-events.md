@@ -3,7 +3,9 @@
 The current `SwarmNode` peer path emits Contract 3 events through the existing
 `core.events.EventLog`. `peer/telemetry.py` handles periodic samples and final
 accounting; `peer/swarm.py` supplies lifecycle and piece events. Logging works
-in both swarm and client-server modes, with Loopback and TCP transports.
+in both swarm and client-server modes, with Loopback, TCP and MurmurTP transports.
+The existing sampler also reports MurmurTP cwnd, RTT and retransmissions; see
+[MurmurTP integration](murmurtp-integration.md) for transport selection and checks.
 
 ## Enable logs
 
