@@ -1,4 +1,4 @@
-"""Experimental Stage 1 endpoint, not yet the final swarm MurmurTransport."""
+"""Stage 1 endpoint and lazy public exports for the final MurmurTransport."""
 
 import asyncio
 import ipaddress
@@ -8,6 +8,15 @@ from typing import Optional, Tuple
 from murmurtp.connection import StopAndWaitConfig, StopAndWaitConnection
 from murmurtp.header import ACK, RST, SYN, Header, PacketError, decode_packet, encode_packet
 from murmurtp.lossy import LossConfig, LossyDatagramTransport
+
+
+def __getattr__(name):
+    # Later stages inherit this module; eagerly importing the final API would
+    # create a circular import. Keep the documented public import path usable.
+    if name in ("MurmurTransport", "MurmurConnection"):
+        from murmurtp.api import MurmurConnection, MurmurTransport
+        return {"MurmurTransport": MurmurTransport, "MurmurConnection": MurmurConnection}[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 class StopAndWaitTransport(asyncio.DatagramProtocol):

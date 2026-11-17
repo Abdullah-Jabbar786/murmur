@@ -13,7 +13,7 @@ from peer.metadata import Metadata
 from peer.node import _Session, _run_cli
 from peer.storage import PieceStore
 from peer.swarm import SwarmNode
-from peer.wire import Choke, Interested, NotInterested, Piece, Request, Unchoke
+from peer.wire import Choke, Have, Interested, NotInterested, Piece, Request, Unchoke
 
 
 DATA = bytes(range(256)) * 2560  # 40 one-block pieces; exceeds the largest window.
@@ -79,6 +79,38 @@ async def next_request(session):
         assert message is not None
         if isinstance(message, Request):
             return message
+
+
+async def test_have_during_not_interested_send_reannounces_interest(tmp_path, monkeypatch):
+    async with network(tmp_path) as (node, peer):
+        source = await peer([0])
+        link = node._links[source.peer_id]
+        original = link.send
+        injected = False
+
+        async def send(message):
+            nonlocal injected
+            if isinstance(message, NotInterested) and not injected:
+                injected = True
+                await source.send(Have(1))
+                await eventually(lambda: 1 in link.available)
+            await original(message)
+
+        monkeypatch.setattr(link, "send", send)
+        await source.send(Unchoke())
+        first = await next_request(source)
+        assert first.piece == 0
+        await source.send(Piece(0, first.offset, source.store.read_block(0, first.offset, first.length)))
+        interested, saw_not_interested = True, False
+        while True:
+            message = await source.receive()
+            if isinstance(message, NotInterested):
+                interested, saw_not_interested = False, True
+            elif isinstance(message, Interested):
+                interested = True
+            elif isinstance(message, Request):
+                assert saw_not_interested and interested and message.piece == 1
+                break
 
 
 @pytest.mark.parametrize("depth", [1, 16, 32])

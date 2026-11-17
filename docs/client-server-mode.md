@@ -21,8 +21,9 @@ supplied config must exist and be a JSON object. Invalid modes and missing or
 conflicting origin-seed options are rejected before creating a download file.
 The CLI also reads `pipelining_depth`, `unchoke_slots`, `choke_interval`,
 `optimistic_unchoke_interval`, and optional `seed` for algorithm tie-breaking.
-See [algorithm-integration.md](algorithm-integration.md). Transport selection
-is not wired into this CLI; it still uses TCP. The original `seed` and `download` commands
+See [algorithm-integration.md](algorithm-integration.md). The JSON `transport`
+setting now selects TCP or MurmurTP; see [MurmurTP integration](murmurtp-integration.md).
+The original `seed` and `download` commands
 remain the H2.1 baseline and do not read these new swarm options.
 
 The origin seed uses `--mode seed`, which verifies an existing complete file.

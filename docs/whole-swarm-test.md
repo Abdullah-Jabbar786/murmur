@@ -1,8 +1,8 @@
-# Whole-swarm Loopback acceptance (H2.5)
+# Whole-swarm acceptance (H2.5 and A3.2)
 
 `tests/test_swarm_full.py` runs **one seed and ten leechers** through the real
 SwarmNode, message codec, piece storage, and event logger, using an isolated
-LoopbackRegistry for each case. It is collected automatically by the existing
+LoopbackRegistry or real localhost MurmurTP endpoints for each case. It is collected automatically by the existing
 `make test` command and GitHub CI's `python -m pytest -q`; no workflow change or
 separate server process is needed.
 
@@ -15,8 +15,8 @@ $testTemp = Join-Path $env:TEMP ("murmur-tests-" + [guid]::NewGuid().ToString("N
 .\.venv\Scripts\python.exe -m pytest tests/test_swarm_full.py -v --durations=2 -p no:cacheprovider --basetemp="$testTemp"
 ```
 
-Expected: **2 passed**. These are two complete eleven-node scenarios, not two
-individual peer checks. The tests generate and cleanly close their own files,
+Expected: **4 passed**: both distribution modes on both transports. Each case
+runs eleven nodes. The tests generate and cleanly close their own files,
 logs, transports, connections, and tasks. No manual dataset, tracker, or network
 namespace setup is required. Pytest may retain temporary files after success.
 
@@ -32,16 +32,16 @@ This exercises HAVE propagation as pieces become available, rather than starting
 every relay with a completed file. Different sources may serve different pieces,
 while reservations prevent overlapping downloads of the same piece.
 
-Both cases verify:
+All cases verify:
 
 - Every leecher owns all pieces and has zero bytes left.
 - Independent disk reads match every metadata piece hash and the source's
   whole-file SHA-256, with exact file size and EOF.
 - Each leecher receives exactly one file's payload, with no hash failures.
-- Node summaries match payload counters and report completion, zero Loopback
-  retransmissions, and zero hash failures.
+- Node summaries match payload counters and report completion and zero hash
+  failures. Loopback retransmissions are zero; MurmurTP reports actual counters.
 - Each node logs one completion and one final summary, plus all verified pieces.
-- Shutdown removes registry listeners and releases session tasks, samplers,
+- Shutdown removes registry listeners or UDP sockets and releases session tasks, samplers,
   reservations, connection tracking, and file handles.
 
 ## Size and time limits
@@ -52,17 +52,21 @@ piece. Each scenario uses approximately 22 MiB of payload disk space plus logs.
 The smaller payload keeps CI fast while testing ten concurrent leechers and
 the final short-block boundary. It does not replace the 64 MiB experiment runs.
 
-Each scenario has a 20-second transfer deadline, a five-second cleanup deadline,
-and an asserted total runtime below 30 seconds, including file verification.
+Each Loopback scenario retains a 20-second transfer deadline and total runtime
+below 30 seconds. MurmurTP scenarios allow 60 seconds for transfer and 70 seconds
+total; all cases have a five-second cleanup deadline. UDP test timing uses short
+explicit RTO/probe overrides and no injected loss; separate Stage 7 relay/event
+tests inject 5% loss. All cases include file verification.
 Timeout diagnostics show each peer's remaining bytes and recent errors.
 The initial Windows/Python 3.14 run passed both scenarios in **4.57 seconds**
 total; runtime varies with the machine. `--durations=2` reports measured case
-times. The under-30-second assertion applies to each whole-swarm scenario,
-not to the entire repository's growing test suite.
+times. The under-30-second assertion applies to each Loopback whole-swarm scenario,
+not to the entire repository's growing test suite. Stage 7 focused UDP timings
+were 19.36s (swarm) and 18.32s (client-server); these are localhost test runtimes.
 
 ## What this establishes
 
-H2.5 checks whole-swarm correctness and cleanup on the in-memory transport.
+H2.5/A3.2 check whole-swarm correctness and cleanup on in-memory and UDP transports.
 The same tests now run with A2.1's rarest-first selection, timed choking, and
 pipelining enabled. They do **not** establish Gate S2 by themselves: routed TCP,
 tracker discovery, captures, the unattended harness, and dashboard evidence

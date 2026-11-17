@@ -3,7 +3,9 @@
 `peer/swarm.py` adds `SwarmNode`, which downloads from multiple neighbors and
 uploads verified pieces at the same time. `peer/node.py` provides the new
 `swarm` command alongside the H2.1 `seed` and `download` commands. The same
-session logic works with LoopbackTransport and TcpTransport.
+session logic works with LoopbackTransport, TcpTransport and MurmurTransport.
+See [MurmurTP integration](murmurtp-integration.md) for JSON transport selection;
+the TCP examples below use the default `"transport": "tcp"` configuration.
 
 ## Automated tests
 

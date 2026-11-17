@@ -1,4 +1,4 @@
-"""H2.5: one seed and ten leechers, bounded Loopback CI acceptance."""
+"""One seed and ten leechers: same acceptance on Loopback and MurmurTP."""
 
 import asyncio
 import hashlib
@@ -9,6 +9,8 @@ import pytest
 
 from core.events import EventLog
 from core.loopback import LoopbackRegistry, LoopbackTransport
+from murmurtp.api import MurmurTransport
+from murmurtp.flow import FlowControlConfig
 from peer.metadata import generate_dataset
 from peer.storage import PieceStore
 from peer.swarm import SwarmNode
@@ -36,8 +38,10 @@ def verify_file(path, metadata):
 
 
 @pytest.mark.parametrize("mode", ["swarm", "client_server"])
-async def test_one_seed_ten_leechers_complete_and_release_resources(tmp_path, mode, record_property):
+@pytest.mark.parametrize("transport", ["loopback", "murmurtp"])
+async def test_one_seed_ten_leechers_complete_and_release_resources(tmp_path, mode, record_property, transport):
     started = time.monotonic()
+    transfer_timeout = TRANSFER_TIMEOUT if transport == "loopback" else 60
     metadata = generate_dataset(tmp_path / "seed/payload.bin", tmp_path / "metadata.json",
                                 size=PAYLOAD_SIZE, seed=2026)
     expected_hash = verify_file(tmp_path / "seed/payload.bin", metadata)
@@ -50,16 +54,19 @@ async def test_one_seed_ten_leechers_complete_and_release_resources(tmp_path, mo
             path = tmp_path / ("seed/payload.bin" if index == 0 else f"leecher-{index}/payload.bin")
             store = PieceStore(path, metadata, mode="seed" if index == 0 else "create")
             stores.append(store)
-            address = (f"10.0.1.{index + 1}", 6881)
-            addresses.append(address)
-            log = EventLog(address[0], str(tmp_path / "events"))
+            address = (f"10.0.1.{index + 1}", 6881) if transport == "loopback" else ("127.0.0.1", 0)
+            log = EventLog(address[0], str(tmp_path / "events" / str(index)))
             logs.append(log)
-            node = SwarmNode(store, transport=LoopbackTransport(registry),
+            endpoint = (LoopbackTransport(registry) if transport == "loopback" else
+                        MurmurTransport(config=FlowControlConfig(initial_rto=.05, min_rto=.01,
+                            max_rto=.2, clock_granularity=.001, probe_interval=.02, inactivity_timeout=10)))
+            node = SwarmNode(store, transport=endpoint,
                              peer_id=index.to_bytes(20, "big"), is_seed=index == 0,
                              mode=mode, event_log=log,
                              seed_address=addresses[0] if index and mode == "client_server" else None)
             nodes.append(node)
             await node.start(address)
+            addresses.append(node.address)
 
         async def transfer():
             if mode == "swarm":
@@ -72,7 +79,7 @@ async def test_one_seed_ten_leechers_complete_and_release_resources(tmp_path, mo
                 await asyncio.gather(nodes[1].connect(addresses[0]), nodes[2].connect(addresses[0]))
             else:
                 await asyncio.gather(*(node.connect(addresses[0]) for node in nodes[1:]))
-            await asyncio.gather(*(node.wait_complete(TRANSFER_TIMEOUT) for node in nodes[1:]))
+            await asyncio.gather(*(node.wait_complete(transfer_timeout) for node in nodes[1:]))
             # Send completion may be scheduled just after the receiver verifies.
             # Also allow workers to release their final piece reservations.
             while (sum(node.bytes_sent for node in nodes) != LEECHER_COUNT * PAYLOAD_SIZE
@@ -80,7 +87,7 @@ async def test_one_seed_ten_leechers_complete_and_release_resources(tmp_path, mo
                 await asyncio.sleep(0.001)
 
         try:
-            await asyncio.wait_for(transfer(), TRANSFER_TIMEOUT)
+            await asyncio.wait_for(transfer(), transfer_timeout)
         except asyncio.TimeoutError:
             pytest.fail("whole-swarm transfer exceeded deadline: " + repr([
                 {"peer": index, "left": node.store.left, "errors": list(node.errors)}
@@ -111,7 +118,11 @@ async def test_one_seed_ten_leechers_complete_and_release_resources(tmp_path, mo
                 log.close()
 
     for index, node in enumerate(nodes):
-        assert registry.lookup(addresses[index]) is None
+        if transport == "loopback":
+            assert registry.lookup(addresses[index]) is None
+        else:
+            assert not node.transport._tasks and not node.transport._peers
+            assert node.transport._socket_closed.done()
         assert not node._links and not node._claims and not node._tasks
         assert node._accept_task.done() and node._events._task.done()
         assert node._policy_task.done()
@@ -124,9 +135,17 @@ async def test_one_seed_ten_leechers_complete_and_release_resources(tmp_path, mo
         assert sum(e["type"] == "complete" for e in events) == 1
         assert {e["piece"] for e in events if e["type"] == "have"} == set(range(metadata.num_pieces))
         summary = events[-1]
-        assert summary["complete"] and summary["hash_fails"] == summary["retx"] == 0
+        assert summary["complete"] and summary["hash_fails"] == 0
+        assert summary["retx"] >= 0
+        if transport == "loopback":
+            assert summary["retx"] == 0
+        else:
+            metrics = [e for e in events if e["type"] == "transport"]
+            assert metrics and all(e["proto"] == "murmurtp" for e in metrics)
+            assert any(e["rtt_ms"] is not None for e in metrics)
         assert summary["bytes_down"] == node.bytes_received
         assert summary["bytes_up"] == node.bytes_sent
     elapsed = time.monotonic() - started
     record_property("swarm_elapsed_seconds", round(elapsed, 3))
-    assert elapsed < 30, f"whole-swarm case took {elapsed:.2f}s (budget: <30s)"
+    budget = 30 if transport == "loopback" else 70
+    assert elapsed < budget, f"whole-swarm case took {elapsed:.2f}s (budget: <{budget}s)"

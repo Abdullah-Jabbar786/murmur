@@ -141,7 +141,11 @@ class _Link:
                 if interested != self.am_interested:
                     self.am_interested = interested
                     await self.send(Interested() if interested else NotInterested())
-                while not self.peer_choking and len(self.pending) < self.node.pipelining_depth:
+                # HAVE may arrive while NOT_INTERESTED is awaiting transport
+                # backpressure. Announce INTERESTED on the next pass before
+                # requesting newly available data.
+                while (self.am_interested and not self.peer_choking
+                       and len(self.pending) < self.node.pipelining_depth):
                     key = self._next_request()
                     if key is None:
                         break

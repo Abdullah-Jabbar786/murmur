@@ -6,9 +6,9 @@ in MASTER_PLAN sections 6.3/6.4 and the fixed one-second probe interval in
 murmurtp-spec section 5.1. The v1 header stays unchanged; Stages 1..5 remain
 available for regression and comparison.
 
-This completes the flow-control implementation portion of A3.2. Review and Linux
-CI remain pending. The final `MurmurTransport` wrapper, transport-event integration,
-swarm selection and routed acceptance are later steps; Gate S3 is not complete.
+This flow-control portion of A3.2 was merged in PR #28 (`29eaedc`).
+[Stage 7](murmurtp-integration.md) now adds the public `MurmurTransport`, events
+and local swarm selection. Routed acceptance remains pending; Gate S3 is not complete.
 
 ## Receive capacity and send admission
 
