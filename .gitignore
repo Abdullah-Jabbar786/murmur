@@ -12,5 +12,6 @@ results/raw_tmp/
 results/**/*.jsonl
 results/**/*.pcap
 .pytest_cache/
+/results/mock-analysis/
 *.pcapng
 !captures/*.pcapng

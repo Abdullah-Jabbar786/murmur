@@ -2,3 +2,4 @@ flask
 pytest
 pytest-asyncio
 hypothesis
+matplotlib>=3.8
