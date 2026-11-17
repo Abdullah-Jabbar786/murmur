@@ -47,7 +47,7 @@ Client / Seed / Leecher
 |---|---|---|---|
 | S0 | Sprint 0 | Repo setup, hygiene, contracts, one merged PR each | complete |
 | S1 | Sprint 1 | Topology, tracker, transport, codecs, loss shim | in progress |
-| S2 | Sprint 2 | TCP swarm with rarest-first and choking | in progress: A2.2 sliding-window step merged; SACK/selective repeat implemented and tested, review pending |
+| S2 | Sprint 2 | TCP swarm with rarest-first and choking | in progress: A2.2 merged; A2.3 randomized transport tests implemented, review pending |
 | S3 | Sprint 3 | MurmurTP swarm at 5% loss, one config flag | planned |
 | S4 | Sprint 4 | E1–E5 experiments and graphs | planned |
 | S5 | Sprint 5 | Report, demo, verification, polishing | planned |
@@ -77,6 +77,7 @@ See the docs for the full design and workflow:
 - [docs/murmurtp-stage1.md](docs/murmurtp-stage1.md)
 - [docs/murmurtp-stage2.md](docs/murmurtp-stage2.md)
 - [docs/murmurtp-stage3.md](docs/murmurtp-stage3.md)
+- [docs/transport-properties.md](docs/transport-properties.md)
 - [docs/wire-codec.md](docs/wire-codec.md)
 - [docs/metadata-tool.md](docs/metadata-tool.md)
 - [docs/tracker.md](docs/tracker.md)
