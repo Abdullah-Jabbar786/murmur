@@ -17,6 +17,8 @@ class StopAndWaitTransport(asyncio.DatagramProtocol):
     close. Reconnect using a fresh endpoint; SYN v1 has no connection nonce.
     """
 
+    connection_type = StopAndWaitConnection
+
     def __init__(self, *, config: Optional[StopAndWaitConfig] = None,
                  loss: Optional[LossConfig] = None, seed: int = 0) -> None:
         self.config = config if config is not None else StopAndWaitConfig()
@@ -98,7 +100,7 @@ class StopAndWaitTransport(asyncio.DatagramProtocol):
                 await self._bind(("0.0.0.0", 0))
             if addr in self._peers:
                 raise RuntimeError("Use a fresh endpoint to reconnect to this peer")
-            conn = StopAndWaitConnection(self, addr, 0, client=True)
+            conn = self.connection_type(self, addr, 0, client=True)
             self._peers[addr] = conn
         try:
             await conn._handshake()
@@ -144,7 +146,7 @@ class StopAndWaitTransport(asyncio.DatagramProtocol):
                 else:
                     self._send(Header(RST), b"", addr)
             elif self._listening and self._next_id <= 65535:
-                conn = StopAndWaitConnection(self, addr, self._next_id, client=False)
+                conn = self.connection_type(self, addr, self._next_id, client=False)
                 self._next_id += 1
                 self._peers[addr] = conn
                 self._spawn(self._server_handshake(conn))
@@ -170,7 +172,7 @@ class StopAndWaitTransport(asyncio.DatagramProtocol):
                 error = done.exception()  # Expected failures remain on the connection.
                 if error is not None and not isinstance(error, OSError):
                     self._loop.call_exception_handler(
-                        dict(message="Unexpected Stage 1 background failure", exception=error))
+                        dict(message="Unexpected MurmurTP background failure", exception=error))
         task.add_done_callback(finished)
         return task
 

@@ -4,6 +4,8 @@
 `murmurtp/connection.py` provides `StopAndWaitConnection` and `StopAndWaitConfig`.
 These are experimental Stage 1 classes. The final `MurmurTransport`, swarm
 configuration switch, SACK, adaptive RTO, and congestion control come later.
+The separate [Stage 2 implementation](murmurtp-stage2.md) now adds a fixed
+sliding window and cumulative ACKs; these Stage 1 classes remain the baseline.
 The existing header codec and seeded outgoing loss shim are reused unchanged
 on the wire; the shim gains `abort()` for endpoint cleanup.
 

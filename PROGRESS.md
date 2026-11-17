@@ -18,17 +18,24 @@ H2.3 client-server mode merged in PR #19 (`8ca36a8`).
 H2.4 peer event logging merged in PR #20 (`dbf15c8`); local main also includes
 dashboard styling commit `f35f6cd`.
 H2.5 whole-swarm Loopback tests merged in PR #21 (`ac7eed2`).
-A2.1 algorithm integration implemented; review and merge pending. SwarmNode
+A2.1 algorithm integration merged in PR #22 (`94fbda3`). SwarmNode
 uses live rarest-first selection, partial-piece priority, exclusive reservations,
 configurable 1..32 request windows (default 16), and timed 4+1 upload slots.
 The swarm CLI reads pipeline/choking settings; piece_select events expose choices.
-New focused tests: 13 passed. One seed and ten leechers still pass in swarm and
+A2.1 focused tests: 13 passed. One seed and ten leechers still pass in swarm and
 client-server modes with independent hashes, payload accounting, and cleanup.
 CI payload: 2 MiB + 37 bytes; each scenario asserts a runtime below 30 seconds.
-Windows verification: 363 passed, 2 Linux TCP tests skipped (full suite 62.23s).
+A2.2 first step implemented; review and merge pending. Separate Stage 2 UDP
+transport provides a fixed 1..32-packet send window (default 16), cumulative
+ACKs, bounded out-of-order buffering, and timeout retransmission of the
+unacknowledged window. Stage 1 remains available for regression/comparison.
+New focused tests: 21 passed in 13.66s. Verified 16 MiB at 5% loss in both
+directions with matching SHA-256; Stage 2 beats Stage 1 in a separate controlled
+delay test. SACK/selective retransmission and A2.2's 64 MiB acceptance are next.
+Windows verification: 384 passed, 2 Linux TCP tests skipped (full suite 38.54s).
 Linux runtime results have not been independently verified here.
 Gate S1 is not yet complete: routed topology/evidence remain outstanding.
-A2.1 review/merge, tracker discovery, routed TCP swarm
+A2.2 first-step review/merge and remaining transport work, tracker discovery, routed TCP swarm
 evidence, harness/dashboard integration, and the remaining Gate S2 checks are pending.
 
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
