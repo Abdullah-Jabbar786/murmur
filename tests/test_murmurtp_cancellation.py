@@ -6,18 +6,21 @@ import pytest
 
 from murmurtp.header import DATA, MSS
 from murmurtp.adaptive import AdaptiveRtoConfig, AdaptiveRtoTransport
+from murmurtp.congestion import CongestionTransport
 from murmurtp.sack import SelectiveRepeatTransport
 from murmurtp.window import SlidingWindowConfig
 
 
 @pytest.mark.parametrize("final_ack", [False, True])
-@pytest.mark.parametrize("stage", [3, 4])
+@pytest.mark.parametrize("stage", [3, 4, 5])
 async def test_cancellation_wins_when_ack_waiter_completes(final_ack, stage):
     config_type = SlidingWindowConfig if stage == 3 else AdaptiveRtoConfig
     extra = {} if stage == 3 else {"min_rto": 0.01}
     config = config_type(**extra, window_packets=2, initial_rto=0.05, max_rto=0.1,
                                  inactivity_timeout=0.5)
     transport = SelectiveRepeatTransport if stage == 3 else AdaptiveRtoTransport
+    if stage == 5:
+        transport = CongestionTransport
     server, client = transport(config=config), transport(config=config)
     sending = None
     waiters = []

@@ -70,6 +70,7 @@ class SelectiveRepeatConnection(SlidingWindowConnection):
                         self._flights.pop(seq, None)
                         progressed = True
             if progressed:
+                self._ack_progress()
                 self._ack_ready.set()
                 self._touch()
             return
@@ -77,6 +78,12 @@ class SelectiveRepeatConnection(SlidingWindowConnection):
 
     def _new_flight(self, seq):
         return _Flight(self.owner._loop.time() + self.config.initial_rto, self.config.initial_rto)
+
+    def _can_send(self):
+        return self._tx_seq - self._send_base < self.config.window_packets
+
+    def _ack_progress(self):
+        """Hook after processing all newly acknowledged packets in an ACK."""
 
     def _acknowledged(self, seq):
         """Hook for timing a newly acknowledged DATA packet before removing it."""
@@ -139,10 +146,11 @@ class SelectiveRepeatConnection(SlidingWindowConnection):
                 while offset < len(data) or self._pending:
                     self._check()
                     self._ack_ready.clear()
+                    # React to loss before admitting any new application data.
+                    self._retry_due(self.owner._loop.time())
                     # Bound the SEQUENCE SPAN, not just unsacked packet count.
                     # SACKed successors must not let us outrun a missing head.
-                    while (offset < len(data)
-                           and self._tx_seq - self._send_base < self.config.window_packets):
+                    while offset < len(data) and self._can_send():
                         chunk = data[offset:offset + MSS]
                         seq = self._tx_seq
                         self._pending[seq] = chunk
@@ -152,7 +160,6 @@ class SelectiveRepeatConnection(SlidingWindowConnection):
                         self._bytes_sent += len(chunk)
                         self._inflight += len(chunk)
                         self._send_packet(DATA, seq=seq, payload=chunk)
-                    self._retry_due(self.owner._loop.time())
                     # Every nonempty window has an unsacked cumulative head.
                     deadline = min(f.deadline for f in self._flights.values())
                     await self._wait_for_ack(max(0, deadline - self.owner._loop.time()))
