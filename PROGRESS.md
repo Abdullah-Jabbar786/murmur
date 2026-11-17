@@ -39,14 +39,19 @@ Stage 3 focused tests: 15 passed in 19.03s. A2.2 acceptance: 64 MiB over localho
 UDP with 5% loss, 5% reorder and 1% duplication on both endpoints, SHA-256 and
 payload counters verified (acceptance case 17.76s).
 A2.3 randomized transport properties implemented; review and merge pending.
-Final focused run: 8 passed in 13.90s, covering 108 generated and 9 explicit examples.
+Initial focused run: 8 passed in 13.90s, covering 108 generated and 9 explicit examples.
 Verified exact duplex streams across Stages 1..3 with independent impairments,
 MSS/send/read boundaries, small buffers, stable EOF and payload accounting;
 interruption preserves only valid prefixes, total loss times out, and resources
-are cleaned up. No transport implementation changes were needed. Adaptive
-timing/congestion/flow control remain later work.
-Windows full suite: 407 passed, 2 Linux TCP tests skipped in 120.18s; strengthened
-prefix/cleanup assertions also passed in the final focused rerun.
+are cleaned up. Initial Windows full suite: 407 passed, 2 Linux TCP tests skipped.
+PR #25 Linux/Python 3.11 CI then exposed a lost-cancellation race in Stage 3's
+ACK wait. Replaced that wait with cancellation-propagating asyncio.wait and
+explicit child-task cleanup; added two deterministic ACK/cancel regressions
+and retained both CI seeds. Properties now cover 108 generated + 13 explicit
+examples. Adaptive timing/congestion/flow control remain later work.
+Cancellation-fix verification: 25 focused tests passed; Windows full suite
+409 passed, 2 Linux TCP tests skipped in 115.03s. Python 3.10 syntax checks pass.
+The fixed commit still needs its Linux/Python 3.11 CI rerun after pushing.
 Linux runtime results have not been independently verified here.
 Gate S1 is not yet complete: routed topology/evidence remain outstanding.
 A2.3 review/merge and remaining transport work, tracker discovery, routed TCP swarm

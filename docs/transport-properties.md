@@ -2,8 +2,9 @@
 
 `tests/test_murmurtp_properties.py` adds Hypothesis properties that exercise
 actual localhost UDP connections. It covers Stage 1 stop-and-wait, Stage 2
-cumulative-ACK windows, and Stage 3 selective repeat. No transport implementation
-changes were required by the successful test run.
+cumulative-ACK windows, and Stage 3 selective repeat. Subsequent Python 3.11 CI
+exposed an ACK/cancellation race in the Stage 3 sender; this PR now includes its
+fix and deterministic regressions in `tests/test_murmurtp_cancellation.py`.
 
 ## Run in VS Code PowerShell
 
@@ -11,14 +12,15 @@ From the project root:
 
 ```powershell
 $testTemp = Join-Path $env:TEMP ("murmur-tests-" + [guid]::NewGuid().ToString("N"))
-.\.venv\Scripts\python.exe -m pytest tests/test_murmurtp_properties.py -v -p no:cacheprovider --basetemp="$testTemp" --hypothesis-show-statistics
+.\.venv\Scripts\python.exe -m pytest tests/test_murmurtp_properties.py tests/test_murmurtp_cancellation.py -v -p no:cacheprovider --basetemp="$testTemp" --hypothesis-show-statistics
 ```
 
-Expected: **8 passed**. These are eight parameterized property-test cases, not
-eight network scenarios. A successful run exercises **108 generated examples
-plus 9 explicit examples**, for 117 scenarios. Hypothesis may also discard
+Expected: **10 passed**: eight parameterized property cases plus two deterministic
+ACK/cancel race cases. The properties exercise **108 generated examples
+plus 13 explicit examples**, for 121 scenarios; the two race cases are additional.
+Hypothesis may also discard
 generation attempts or run additional examples when shrinking a failure.
-The final focused Windows run passed in **13.90 seconds**.
+Runtime varies with scheduling and the generated impairment combinations.
 
 No manual server, dataset, tracker, topology, Ubuntu or dashboard is required.
 Each example creates a fresh asyncio loop and fresh ephemeral UDP endpoints.
@@ -29,12 +31,29 @@ Hypothesis is already a project dependency.
 | Property | Cases / examples | Required result |
 |---|---|---|
 | Duplex streams on Stages 1, 2 and 3 | 3 cases; 20 generated + 3 explicit examples each | Both byte streams match exactly, no duplicates or extra bytes, stable EOF, exact payload counters |
-| Interrupted Stage 3 transfers | 2 cases: cancellation and endpoint shutdown; 12 generated examples each | Received data is only a valid prefix; send fails, no graceful EOF or false success |
+| Interrupted Stage 3 transfers | 2 cases: cancellation and endpoint shutdown; 12 generated + 2 explicit examples each | Received data is only a valid prefix; send fails, no graceful EOF or false success |
 | Total loss on Stages 1, 2 and 3 | 3 cases; 8 generated examples each | Both blocked send and receive time out, no received payload or outstanding bytes remain |
 
 Every example checks endpoint task/socket cleanup, cancellation of pending
 impairment deliveries, canceled inactivity timers, and cleared outstanding work.
 Stage 3 cleanup includes its SACK scoreboard and retry deadlines.
+
+## Python 3.11 cancellation regression
+
+PR #25's first Linux/Python 3.11 run failed when cancellation coincided with an
+ACK waiter finishing. This matches [CPython issue #86296](https://github.com/python/cpython/issues/86296):
+older `asyncio.wait_for()` can lose the caller's cancellation in that race.
+The send then continued until inactivity timeout or peer reset instead of
+raising `CancelledError`. Increasing timeouts or accepting those errors would
+hide the failed cancellation behavior.
+
+Stage 3 now uses `asyncio.wait()` for the ACK/deadline wait and explicitly cancels
+and awaits its child event waiter. The regression schedules cancellation when
+the ACK event's waiter completes, testing both a partial and final ACK. It
+requires `CancelledError`, an aborted connection, cleared pending state and no
+leaked waiter. The two CI seeds (0 and 1, window 2, read size 17, one-MSS prefix)
+are also retained as explicit property examples. Python 3.10 remains supported;
+CI's Python 3.11 version and cancellation assertions are unchanged.
 
 ## Generated input space
 

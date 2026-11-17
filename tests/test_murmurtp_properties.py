@@ -218,6 +218,8 @@ async def interrupted_stream(action, window, seed, read_size, prefix_packets):
 
 @pytest.mark.parametrize("action", ["cancel", "shutdown"])
 @settings(max_examples=12, derandomize=True, database=None, deadline=None)
+@example(window=2, seed=0, read_size=17, prefix_packets=1)
+@example(window=2, seed=1, read_size=17, prefix_packets=1)
 @given(window=st.sampled_from([1, 2, 4, 16, 32]), seed=st.integers(0, 2**32 - 1),
        read_size=st.sampled_from([17, 127, 4096]), prefix_packets=st.integers(0, 3))
 def test_random_interruption_preserves_prefix_and_releases_resources(action, window, seed,

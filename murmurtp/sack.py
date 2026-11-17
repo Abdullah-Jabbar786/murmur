@@ -86,6 +86,19 @@ class SelectiveRepeatConnection(SlidingWindowConnection):
         self._rto = flight.rto
         flight.deadline = self.owner._loop.time() + flight.rto
 
+    async def _wait_for_ack(self, timeout):
+        # Python 3.10/3.11 wait_for can swallow caller cancellation if its
+        # inner task finishes at the same time (CPython issue #86296).
+        # wait propagates that cancellation; explicitly reap our child task.
+        waiter = asyncio.create_task(self._ack_ready.wait())
+        try:
+            done, _ = await asyncio.wait((waiter,), timeout=timeout)
+            if done:
+                waiter.result()
+        finally:
+            waiter.cancel()
+            await asyncio.gather(waiter, return_exceptions=True)
+
     async def send(self, data: bytes) -> None:
         if not isinstance(data, bytes):
             raise TypeError("data must be bytes")
@@ -124,11 +137,7 @@ class SelectiveRepeatConnection(SlidingWindowConnection):
                             self._retry(seq, timeout=False)
                     # Every nonempty window has an unsacked cumulative head.
                     deadline = min(f.deadline for f in self._flights.values())
-                    try:
-                        await asyncio.wait_for(self._ack_ready.wait(),
-                                               max(0, deadline - self.owner._loop.time()))
-                    except asyncio.TimeoutError:
-                        pass  # Check packet-specific deadlines on the next iteration.
+                    await self._wait_for_ack(max(0, deadline - self.owner._loop.time()))
                     self._check()  # Abort clears the window; that must not look like success.
             except (asyncio.CancelledError, OSError, OverflowError):
                 self._abort(ConnectionAbortedError("Send interrupted"))
