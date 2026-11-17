@@ -5,9 +5,10 @@
 reorder buffer, and Stage 1's handshake, endpoint and FIN lifecycle. The earlier
 transports remain available for comparison and regression tests.
 
-This implements the remaining Stage 3 portion of A2.2. The separate A2.3
-Hypothesis transport tests, adaptive RTO, congestion control, full flow control,
-and swarm transport selection remain later tasks.
+This implements the remaining Stage 3 portion of A2.2. A2.3's separate
+[Hypothesis transport properties](transport-properties.md) now exercise all
+three stages. Adaptive RTO, congestion control, full flow control, and swarm
+transport selection remain later tasks.
 
 ## Test in VS Code PowerShell
 

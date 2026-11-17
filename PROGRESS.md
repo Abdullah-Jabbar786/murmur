@@ -32,18 +32,24 @@ unacknowledged window. Stage 1 remains available for regression/comparison.
 Stage 2 focused tests: 21 passed in 13.66s. Verified 16 MiB at 5% loss in both
 directions with matching SHA-256; Stage 2 beats Stage 1 in a separate controlled
 delay test.
-A2.2 Stage 3 implemented; review and merge pending. Separate selective-repeat
+A2.2 Stage 3 merged in PR #24 (`0fbf831`). Separate selective-repeat
 transport uses the v1 SACK bitmap, a bounded sender scoreboard, independent
 packet deadlines, selective timeout retries and the three-later-SACK gap rule.
-New focused tests: 15 passed in 19.03s. A2.2 acceptance: 64 MiB over localhost
+Stage 3 focused tests: 15 passed in 19.03s. A2.2 acceptance: 64 MiB over localhost
 UDP with 5% loss, 5% reorder and 1% duplication on both endpoints, SHA-256 and
-payload counters verified (acceptance case 17.76s). A2.3 randomized transport
-properties are the next planned task; adaptive timing/congestion/flow control
-remain later work.
-Windows verification: 399 passed, 2 Linux TCP tests skipped (full suite 56.51s).
+payload counters verified (acceptance case 17.76s).
+A2.3 randomized transport properties implemented; review and merge pending.
+Final focused run: 8 passed in 13.90s, covering 108 generated and 9 explicit examples.
+Verified exact duplex streams across Stages 1..3 with independent impairments,
+MSS/send/read boundaries, small buffers, stable EOF and payload accounting;
+interruption preserves only valid prefixes, total loss times out, and resources
+are cleaned up. No transport implementation changes were needed. Adaptive
+timing/congestion/flow control remain later work.
+Windows full suite: 407 passed, 2 Linux TCP tests skipped in 120.18s; strengthened
+prefix/cleanup assertions also passed in the final focused rerun.
 Linux runtime results have not been independently verified here.
 Gate S1 is not yet complete: routed topology/evidence remain outstanding.
-A2.2 Stage 3 review/merge and remaining transport work, tracker discovery, routed TCP swarm
+A2.3 review/merge and remaining transport work, tracker discovery, routed TCP swarm
 evidence, harness/dashboard integration, and the remaining Gate S2 checks are pending.
 
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
