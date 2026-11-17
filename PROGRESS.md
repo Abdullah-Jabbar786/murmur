@@ -92,7 +92,8 @@ Stage 6 Windows/Python 3.14 full regression run: 496 passed, 2 existing Linux TC
 skips in 136.14s. Final review added the TIME_WAIT idle-timer guard/regression;
 final focused verification: 44 passed in 31.75s. Both runs used warnings as errors.
 Five changed Python files pass Python 3.10 syntax checks; Linux CI pending.
-A3.2 Stage 7 implemented: public Contract 2 MurmurTransport/MurmurConnection,
+A3.2 Stage 7 merged in PR #29 (`8fe6ed7`), pulled into local main.
+It provides public Contract 2 MurmurTransport/MurmurConnection,
 validated transport factory, TCP/MurmurTP swarm CLI selection and matching default
 ports. Default config now selects TCP (the CLI previously ignored loopback).
 Existing PeerEvents emits real MurmurTP metrics and exact final retransmission
@@ -103,10 +104,24 @@ one-seed/ten-leecher test on Loopback and localhost MurmurTP (2 MiB + 37 bytes).
 Independent hashes, exact payload accounting, relay uploads, zero client-server
 leecher uploads, logs and cleanup verified. Smaller relay/event tests also pass
 at 5% loss, 5% reorder and 1% duplication. A3.2 local implementation is complete;
-Stage 7 review/merge and Linux CI remain pending. Routed A3.3 evidence is outstanding.
+Stage 7 is merged. Routed A3.3 evidence is outstanding.
 Stage 7 full Windows/Python 3.14 regression: 523 passed, 2 existing Linux TCP
 skips in 182.23s with warnings treated as errors. Nine changed Python files pass
 Python 3.10 syntax checks; Git whitespace checks pass.
+18 Nov 2026: A2.4 offline aggregation/plotting implemented against explicit mock
+CSV metrics. Validates configuration/run identities, excludes warm-ups, preserves
+unknown values and reports observed/missing counts with mean, sample SD and min/max.
+Subjects keep per-peer/flow metrics separate. PNG plots reject mixed data kinds
+or fixed conditions and label mock data prominently. Sample table contains 30
+rows; the PNG was generated and visually inspected. This does not run experiments
+or convert raw JSONL; harness/export and real results remain pending. Review and
+merge pending. Matplotlib was already available in system Python; installation
+was not approved, so verification uses that existing interpreter for plotting.
+Analysis verification: 30 passed with warnings as errors. Full Windows run:
+551 passed, 2 Linux TCP skips, 2 existing MurmurTP acceptance deadline failures
+(64 MiB Stage 3 and client-server whole-swarm). Full regression is not green;
+transport code and test deadlines were unchanged by A2.4.
+Both deadline failures reproduced in a separate two-test run; cause unresolved.
 Gate S1 is not yet complete: routed topology/evidence remain outstanding.
 Remaining transport work, tracker discovery, routed TCP swarm
 evidence, harness/dashboard integration, and the remaining Gate S2 checks are pending.
