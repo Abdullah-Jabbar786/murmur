@@ -131,6 +131,11 @@ class SelectiveRepeatConnection(SlidingWindowConnection):
             waiter.cancel()
             await asyncio.gather(waiter, return_exceptions=True)
 
+    async def _wait_for_send_progress(self):
+        # Every nonempty selective-repeat window has an unsacked head.
+        deadline = min(f.deadline for f in self._flights.values())
+        await self._wait_for_ack(max(0, deadline - self.owner._loop.time()))
+
     async def send(self, data: bytes) -> None:
         if not isinstance(data, bytes):
             raise TypeError("data must be bytes")
@@ -160,9 +165,7 @@ class SelectiveRepeatConnection(SlidingWindowConnection):
                         self._bytes_sent += len(chunk)
                         self._inflight += len(chunk)
                         self._send_packet(DATA, seq=seq, payload=chunk)
-                    # Every nonempty window has an unsacked cumulative head.
-                    deadline = min(f.deadline for f in self._flights.values())
-                    await self._wait_for_ack(max(0, deadline - self.owner._loop.time()))
+                    await self._wait_for_send_progress()
                     self._check()  # Abort clears the window; that must not look like success.
             except (asyncio.CancelledError, OSError, OverflowError):
                 self._abort(ConnectionAbortedError("Send interrupted"))

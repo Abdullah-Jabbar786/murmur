@@ -3,10 +3,10 @@
 `tests/test_murmurtp_properties.py` adds Hypothesis properties that exercise
 actual localhost UDP connections. It covers Stage 1 stop-and-wait, Stage 2
 cumulative-ACK windows, Stage 3 selective repeat, Stage 4 adaptive RTO and
-Stage 5 congestion control.
+Stage 5 congestion control and Stage 6 receive-window flow control.
 PR #25 fixed an ACK/cancellation race exposed by Python 3.11 CI. Its
 deterministic regressions in `tests/test_murmurtp_cancellation.py` now cover
-Stages 3..5.
+Stages 3..6.
 
 ## Run in VS Code PowerShell
 
@@ -17,9 +17,9 @@ $testTemp = Join-Path $env:TEMP ("murmur-tests-" + [guid]::NewGuid().ToString("N
 .\.venv\Scripts\python.exe -m pytest tests/test_murmurtp_properties.py tests/test_murmurtp_cancellation.py -v -p no:cacheprovider --basetemp="$testTemp" --hypothesis-show-statistics
 ```
 
-Expected: **18 passed**: twelve parameterized property cases plus six deterministic
-ACK/cancel race cases. The properties exercise **164 generated examples
-plus 19 explicit examples**, for 183 scenarios; the six race cases are additional.
+Expected: **22 passed**: fourteen parameterized property cases plus eight deterministic
+ACK/cancel race cases. The properties exercise **192 generated examples
+plus 22 explicit examples**, for 214 scenarios; the eight race cases are additional.
 Hypothesis may also discard
 generation attempts or run additional examples when shrinking a failure.
 Runtime varies with scheduling and the generated impairment combinations.
@@ -32,14 +32,15 @@ Hypothesis is already a project dependency.
 
 | Property | Cases / examples | Required result |
 |---|---|---|
-| Duplex streams on Stages 1..5 | 5 cases; 20 generated + 3 explicit examples each | Both byte streams match exactly, no duplicates or extra bytes, stable EOF, exact payload counters |
+| Duplex streams on Stages 1..6 | 6 cases; 20 generated + 3 explicit examples each | Both byte streams match exactly, no duplicates or extra bytes, stable EOF, exact payload counters |
 | Interrupted Stage 3 transfers | 2 cases: cancellation and endpoint shutdown; 12 generated + 2 explicit examples each | Received data is only a valid prefix; send fails, no graceful EOF or false success |
-| Total loss on Stages 1..5 | 5 cases; 8 generated examples each | Both blocked send and receive time out, no received payload or outstanding bytes remain |
+| Total loss on Stages 1..6 | 6 cases; 8 generated examples each | Both blocked send and receive time out, no received payload or outstanding bytes remain |
 
 Every example checks endpoint task/socket cleanup, cancellation of pending
 impairment deliveries, canceled inactivity timers, and cleared outstanding work.
-Stage 3..5 cleanup includes the SACK scoreboard and retry deadlines. Stages 4/5
+Stage 3..6 cleanup includes the SACK scoreboard and retry deadlines. Stages 4..6
 use short test-only RTO bounds (5..40 ms, initially 10 ms) for this suite.
+Stage 6 uses a 10 ms test-only probe interval; the default is one second.
 
 ## Python 3.11 cancellation regression
 
@@ -97,5 +98,5 @@ condition or arbitrary sustained loss. These tests complement the Stage 2
 16 MiB and Stage 3 64 MiB acceptance cases rather than replacing them.
 
 This adds correctness coverage, not routed throughput or fairness evidence.
-Flow control, swarm transport selection and Linux
+Final swarm transport selection and Linux
 network experiments remain later work.

@@ -9,8 +9,8 @@ This implements the remaining Stage 3 portion of A2.2. A2.3's separate
 [Hypothesis transport properties](transport-properties.md) now exercise all
 three stages and the separate [Stage 4 adaptive RTO transport](murmurtp-stage4.md).
 Stage 3 retains its original fixed initial timers. [Stage 5](murmurtp-stage5.md)
-adds congestion control. Full flow control and swarm transport selection remain
-later tasks.
+adds congestion control and [Stage 6](murmurtp-stage6.md) adds flow control.
+Final swarm transport selection remains a later task.
 
 ## Test in VS Code PowerShell
 
