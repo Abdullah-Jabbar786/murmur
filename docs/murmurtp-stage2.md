@@ -5,9 +5,9 @@
 acknowledgments, processes cumulative ACKs, and buffers bounded out-of-order
 arrivals. The Stage 1 classes remain available for regression and comparison.
 
-This completes the first step of A2.2, not all of A2.2. SACK and selective
-retransmission are the next step; their 64 MiB impairment acceptance remains
-pending. The frozen v1 header and handshake/FIN formats are unchanged.
+This is the first step of A2.2. The separate [Stage 3 implementation](murmurtp-stage3.md)
+now supplies SACK, selective retransmission and the 64 MiB impairment acceptance.
+The frozen v1 header and handshake/FIN formats are unchanged.
 
 ## Run the tests in VS Code PowerShell
 
@@ -124,5 +124,6 @@ Stage 1's payload counters, retransmissions and outstanding payload bytes.
 congestion window. Advertised free capacity includes the reorder buffer, but
 sender-side advertised-window control and zero-window probes are later work.
 
-SACK/selective retransmission, adaptive RTO, congestion control, complete flow
-control, swarm transport selection and routed Linux acceptance remain pending.
+SACK/selective retransmission are available in the separate Stage 3 transport.
+Adaptive RTO, congestion control, complete flow control, swarm transport
+selection and routed Linux acceptance remain pending.
