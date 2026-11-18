@@ -194,8 +194,20 @@ Final full Windows/Python 3.14 regression: 609 passed, 2 existing Linux TCP
 skips in 224.22s, warnings as errors. Whole-swarm MurmurTP took 20.52s (swarm)
 and 21.48s (client-server), within unchanged deadlines. Four changed Python
 files pass Python 3.10 syntax checks; Git whitespace checks pass. Updated Linux
-CI, review and merge remain pending.
-Gate S1 is not yet complete: routed topology/evidence remain outstanding.
+CI, review and merge were pending at the time of that run.
+M1.1 follow-up: PR #33 is merged at cead7b7. Majid supplied Ubuntu 24.04.3
+VM output (kernel 6.17.0-14-generic) showing ip, bridge, ethtool, ping, make,
+tc, traceroute and iperf3 installed, a successful sudo network namespace
+probe, and a clean Ubuntu clone at cead7b7. Routed topology setup, namespace
+execution, teardown and an Ubuntu acceptance script are now implemented.
+Majid ran `sudo make test-topo` in that VM against the M1.1 patch.
+All three checks passed. With five leechers per LAN, cross-LAN and origin
+pings succeeded, router lookups used the expected WAN next hops, and the
+sampled interfaces had TSO, GSO and GRO disabled. Setup then rebuilt the
+lab with ten leechers per LAN and the added hosts passed the connectivity
+checks. After manual removal of R2, two teardowns restored the original
+named namespace inventory. M1.1 has passed VM acceptance and awaits PR review.
+Gate S1 remains open pending M1.2 shaping and M1.3 routed measurements.
 Remaining transport work, tracker discovery, routed TCP swarm
 evidence, harness/dashboard integration, and the remaining Gate S2 checks are pending.
 
