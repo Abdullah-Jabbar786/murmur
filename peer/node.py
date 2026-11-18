@@ -289,6 +289,7 @@ async def _run_cli(args) -> None:
                              unchoke_slots=config.get("unchoke_slots", 4),
                              choke_interval=config.get("choke_interval", 10.0),
                              optimistic_unchoke_interval=config.get("optimistic_unchoke_interval", 30.0),
+                             keepalive_interval=config.get("keepalive_interval", 3.0),
                              random_seed=config.get("seed", 0))
             try:
                 await node.start((args.host, port))

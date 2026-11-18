@@ -108,20 +108,36 @@ Stage 7 is merged. Routed A3.3 evidence is outstanding.
 Stage 7 full Windows/Python 3.14 regression: 523 passed, 2 existing Linux TCP
 skips in 182.23s with warnings treated as errors. Nine changed Python files pass
 Python 3.10 syntax checks; Git whitespace checks pass.
-18 Nov 2026: A2.4 offline aggregation/plotting implemented against explicit mock
+18 Nov 2026: A2.4 offline aggregation/plotting merged in PR #30 (`650bdf2`)
+and pulled into local main. Implemented against explicit mock
 CSV metrics. Validates configuration/run identities, excludes warm-ups, preserves
 unknown values and reports observed/missing counts with mean, sample SD and min/max.
 Subjects keep per-peer/flow metrics separate. PNG plots reject mixed data kinds
 or fixed conditions and label mock data prominently. Sample table contains 30
 rows; the PNG was generated and visually inspected. This does not run experiments
-or convert raw JSONL; harness/export and real results remain pending. Review and
-merge pending. Matplotlib was already available in system Python; installation
+or convert raw JSONL; harness/export and real results remain pending.
+Matplotlib was already available in system Python; installation
 was not approved, so verification uses that existing interpreter for plotting.
 Analysis verification: 30 passed with warnings as errors. Full Windows run:
 551 passed, 2 Linux TCP skips, 2 existing MurmurTP acceptance deadline failures
 (64 MiB Stage 3 and client-server whole-swarm). Full regression is not green;
 transport code and test deadlines were unchanged by A2.4.
-Both deadline failures reproduced in a separate two-test run; cause unresolved.
+Both deadline failures reproduced in a separate two-test run during A2.4.
+Timeout follow-up: idle swarm peers now reannounce their interest state every
+3 seconds without changing upload slots or payload accounting. This prevents
+MurmurTP inactivity expiry while waiting for a choking slot. Silent neighbors
+still expire; link shutdown joins the keepalive worker. The CLI exposes
+keepalive_interval, which must be comfortably below custom transport idle limits.
+Both original cases subsequently passed: 64 MiB Stage 3 in 39.88s and ten-leecher
+client-server MurmurTP in 16.72s. Their 120s/60s deadlines were not changed.
+The earlier Stage 3 slowdown did not reproduce in this run; no transport change
+is claimed to fix its underlying cause. Keepalive/algorithm checks: 20 passed.
+Final Windows/Python 3.14 full regression: 559 passed, 2 existing Linux TCP
+skips in 197.16s, warnings treated as errors. In that full run, Stage 3 took
+49.47s and client-server MurmurTP 15.04s. CLI keepalive configuration check
+also passed separately after its final assertion was added. Four changed/new
+Python files pass Python 3.10 syntax checks; whitespace checks pass.
+Follow-up review, Linux CI and merge pending.
 Gate S1 is not yet complete: routed topology/evidence remain outstanding.
 Remaining transport work, tracker discovery, routed TCP swarm
 evidence, harness/dashboard integration, and the remaining Gate S2 checks are pending.

@@ -119,3 +119,42 @@ Full Windows/Python 3.14 regression: **523 passed, 2 existing Linux TCP skips**
 in 182.23 seconds with warnings treated as errors. Nine changed Python files
 pass Python 3.10 syntax checks, and Git whitespace checks pass. GitHub's actual
 Linux/Python 3.11 run remains pending after pushing.
+
+## Idle-peer timeout follow-up (18 November 2026)
+
+The client-server acceptance later failed because the transport's 10-second
+inactivity deadline could expire while a peer waited for a 4+1 upload slot.
+The swarm reader allowed this wait, but that did not keep the underlying UDP
+connection active. Completed peers could also expire while others downloaded.
+
+Established swarm links now repeat their current INTERESTED/NOT_INTERESTED
+state after an idle send interval (default `keepalive_interval: 3` seconds in
+the swarm CLI JSON config). This reuses the existing wire messages and reliable
+ACKs. It does not change payload counters, available upload slots, request
+deadlines or transport inactivity limits. Active sends suppress redundant
+announcements; announcements share the normal send lock. A silent neighbor
+still times out, and link shutdown cancels and joins its keepalive worker.
+
+Set the interval comfortably below the transport inactivity timeout when using
+custom short deadlines. The new regression uses a 50ms interval and 300ms idle
+deadline, waits 700ms with upload disabled, then verifies a successful download
+and exact payload counts. Another test blackholes all packets and verifies that
+the connection still expires and releases its worker tasks.
+
+The separate Stage 3 64 MiB timeout was investigated with progress counters:
+the sender continued advancing but incurred heavy retransmission. Increasing
+the OS receive buffer did not improve this behavior and was not retained.
+The original unmodified acceptance subsequently passed in 39.88s, retaining
+its 120s limit and all hash/loss/reorder/duplicate assertions. No specific
+transport defect has been established for that earlier slowdown; a passing
+rerun is not evidence that every timing-sensitive failure has been eliminated.
+The client-server acceptance passed in 16.72s after the keepalive fix, with its
+60s deadline unchanged.
+
+Final follow-up verification: **559 passed, 2 existing Linux TCP skips** in
+197.16s on Windows/Python 3.14, with warnings treated as errors. The full run
+included the unchanged Stage 3 acceptance (49.47s) and both ten-leecher modes
+(16.58s swarm, 15.04s client-server). The six new keepalive cases cover idle
+survival/download, a silent neighbor and four invalid interval values. The
+updated CLI configuration assertion passed separately. Four changed/new Python
+files pass Python 3.10 syntax checks. Linux CI still needs to run after pushing.

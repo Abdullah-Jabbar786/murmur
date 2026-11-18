@@ -228,7 +228,8 @@ async def test_cli_passes_algorithm_config_to_running_node(tmp_path, monkeypatch
     metadata.write_bytes(META.canonical_bytes())
     config = tmp_path / "config.json"
     config.write_text(json.dumps(dict(pipelining_depth=32, unchoke_slots=2,
-                                     choke_interval=0.3, optimistic_unchoke_interval=0.7, seed=42)))
+                                     choke_interval=0.3, optimistic_unchoke_interval=0.7,
+                                     keepalive_interval=0.2, seed=42)))
     inspected = []
 
     class InspectNode(SwarmNode):
@@ -237,6 +238,7 @@ async def test_cli_passes_algorithm_config_to_running_node(tmp_path, monkeypatch
             assert self.pipelining_depth == 32 and self._policy.unchoke_slots == 2
             assert self._policy.choke_interval == 0.3
             assert self._policy.optimistic_unchoke_interval == 0.7
+            assert self.keepalive_interval == 0.2
             raise RuntimeError("settings inspected")
 
     monkeypatch.setattr(swarm, "SwarmNode", InspectNode)

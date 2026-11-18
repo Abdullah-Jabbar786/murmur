@@ -150,3 +150,10 @@ before merging; these results do not establish a clean full-suite run.
 Both failures reproduced in a two-test rerun (183.33s): the Stage 3 transfer hit
 120s and the client-server swarm hit 60s, with connection inactivity errors.
 Their underlying cause has not been established in this analysis task.
+
+Follow-up: see [MurmurTP integration](murmurtp-integration.md#idle-peer-timeout-follow-up-18-november-2026)
+for the idle-peer keepalive fix and subsequent successful runs of both original
+acceptance cases. The earlier failed runs above remain part of the test record.
+The follow-up full Windows suite passed: **559 passed, 2 Linux TCP skips** in
+197.16s with warnings treated as errors. No analysis test or transport acceptance
+deadline was weakened.
