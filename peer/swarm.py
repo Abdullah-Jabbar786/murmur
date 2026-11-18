@@ -36,6 +36,8 @@ class _Link:
         self.peak_pending = 0
         self.retired = set()
         self.worker = None
+        self.keepalive = None
+        self._last_sent = asyncio.get_running_loop().time()
         self.closed = False
         self.failures = {}
         self.downloaded = self.uploaded = 0
@@ -46,6 +48,7 @@ class _Link:
     async def send(self, message):
         async with self.send_lock:
             await self.session.send(message)
+            self._last_sent = asyncio.get_running_loop().time()
             if isinstance(message, (Choke, Unchoke)):
                 self.node._emit("choke" if isinstance(message, Choke) else "unchoke",
                                 peer=str(self.connection.peer_addr[0]),
@@ -55,6 +58,19 @@ class _Link:
     async def upload_policy(self):
         await self.node._refresh_uploads(
             force_choke=self if not self.node.uploads_enabled and self.peer_interested else None)
+
+    async def keepalive_loop(self):
+        # Reannounce existing interest state: no new wire message or payload
+        # accounting. A choked peer may wait longer than the transport idle
+        # deadline for an optimistic slot. Reliable sends still fail if its
+        # neighbor stops acknowledging, so dead connections cannot live forever.
+        loop = asyncio.get_running_loop()
+        while True:
+            await asyncio.sleep(self.node.keepalive_interval)
+            async with self.send_lock:
+                if loop.time() - self._last_sent >= self.node.keepalive_interval:
+                    await self.session.send(Interested() if self.am_interested else NotInterested())
+                    self._last_sent = loop.time()
 
     async def receive_loop(self):
         while True:
@@ -197,9 +213,10 @@ class _Link:
         if self.closed:
             return
         self.closed = True
-        if self.worker is not None:
-            self.worker.cancel()
-            await asyncio.gather(self.worker, return_exceptions=True)
+        tasks = [task for task in (self.worker, self.keepalive) if task is not None]
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
         await self.connection.close()
 
 
@@ -217,7 +234,8 @@ class SwarmNode:
                  mode: str = "swarm", is_seed: bool = False, seed_address=None,
                  event_log=None, sample_interval: float = 1.0, pipelining_depth: int = 16,
                  unchoke_slots: int = 4, choke_interval: float = 10.0,
-                 optimistic_unchoke_interval: float = 30.0, random_seed: int = 0):
+                 optimistic_unchoke_interval: float = 30.0, random_seed: int = 0,
+                 keepalive_interval: float = 3.0):
         if store.closed:
             raise ValueError("store must be open")
         if mode not in ("swarm", "client_server"):
@@ -240,6 +258,8 @@ class SwarmNode:
         _timeout(io_timeout)
         _timeout(request_timeout)
         _timeout(sample_interval)
+        _timeout(keepalive_interval)
+        self.keepalive_interval = keepalive_interval
         if type(max_piece_retries) is not int or max_piece_retries < 0:
             raise ValueError("max_piece_retries must be a nonnegative integer")
         if type(pipelining_depth) is not int or not 1 <= pipelining_depth <= 32:
@@ -372,9 +392,11 @@ class SwarmNode:
                 await link.send(Have(piece))
             reader = asyncio.create_task(link.receive_loop())
             link.worker = asyncio.create_task(link.download_loop())
+            link.keepalive = asyncio.create_task(link.keepalive_loop())
             if ready is not None and not ready.done():
                 ready.set_result(link.remote_id)
-            done, _ = await asyncio.wait((reader, link.worker), return_when=asyncio.FIRST_COMPLETED)
+            done, _ = await asyncio.wait((reader, link.worker, link.keepalive),
+                                         return_when=asyncio.FIRST_COMPLETED)
             for task in done:
                 task.result()
         except asyncio.CancelledError:

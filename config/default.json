@@ -10,6 +10,7 @@
   "unchoke_slots": 4,
   "optimistic_unchoke_interval": 30,
   "choke_interval": 10,
+  "keepalive_interval": 3,
   "pipelining_depth": 16,
   "mode": "swarm"
 }
