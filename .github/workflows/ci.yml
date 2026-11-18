@@ -2,7 +2,8 @@ name: ci
 on: [push, pull_request]
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # Keep the OS/TShark packaging reproducible; latest denied repository Lua reads.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -13,6 +14,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y tshark
+          tshark --version
       - run: python -m pytest -q
         env:
           MURMUR_REQUIRE_TSHARK: "1"

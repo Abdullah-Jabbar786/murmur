@@ -104,3 +104,45 @@ skips** in 107.12s with warnings treated as errors. All dissector tests ran.
 The sample produced nine decoded packets and a SACK display filter selected
 packet 5 with sequence values 2,4,33. Three new Python files pass Python 3.10
 syntax checks; Git whitespace checks pass. Linux CI must still run after push.
+
+## CI follow-up
+
+The first GitHub run reported 17 failures: all 16 dissector cases were unable
+to read the repository Lua script, plus a client-server swarm cleanup timeout.
+The latter happened while joining node shutdown, not during data transfer.
+
+CI now uses the explicit `ubuntu-24.04` runner and prints TShark's version.
+The moving `ubuntu-latest` label is undergoing an
+[Ubuntu 26.04 migration](https://github.blog/changelog/2026-09-17-ubuntu-26-generally-available-and-latest-migration/).
+The supplied log establishes TShark's file-access denial, but contains no
+AppArmor audit record proving the underlying policy. Pinning the supported
+runner keeps package selection reproducible without broad file-permission
+changes, running tests as root, or disabling security profiles.
+
+Peer send/handshake waits and block-request wakeups now use a bounded helper
+that preserves external cancellation if the inner operation finishes at the
+same instant. This addresses a shutdown hazard in Python 3.10/3.11's legacy
+`asyncio.wait_for` ([CPython issue 86296](https://github.com/python/cpython/issues/86296)).
+The helper joins its child task on success, timeout, exception and cancellation.
+Six deterministic regressions cover these cases at helper, session-send and
+download-worker boundaries. No transfer/cleanup deadline was increased; Python
+3.11 and all actual Lua acceptance tests remain enabled in CI.
+
+Focused local follow-up: 32 passed (cancellation, keepalive, dissector and
+whole-swarm tests) in 21.02s. Windows execution cannot verify the new Linux
+runner's file access; both GitHub checks must pass on the updated PR before merge.
+
+The broader local run exposed three assumptions about task ordering in older
+tests. Slot replacement now waits for both policy messages to finish before
+counting slots; the disconnect fixture waits for the first block to be stored
+before simulating departure; bad-handshake fixtures consume the client greeting
+before closing so TCP does not discard their reply via reset. Existing state,
+hash, byte-count and timeout assertions remain intact. The focused peer suite
+then passed all 60 cases in 6.88s. The helper also avoids an unnecessary event
+loop yield when its child has already completed.
+
+Final follow-up full Windows/Python 3.14 run: **581 passed, 2 existing Linux TCP
+skips** in 115.63s, warnings treated as errors. The ten-leecher client-server
+MurmurTP case passed in 7.98s, including its unchanged five-second cleanup limit.
+Seven changed/new Python files pass Python 3.10 syntax checks. The updated
+Ubuntu 24.04/Python 3.11 run is pending push and is not claimed as verified here.

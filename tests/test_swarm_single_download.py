@@ -156,6 +156,10 @@ async def test_bad_seed_protocol_rejected(tmp_path, failure):
     metadata = build_metadata(source)
 
     async def script(connection):
+        if failure in ("no_handshake", "wrong_hash"):
+            # Consume the client's greeting before closing with a bad reply.
+            # Closing TCP with unread input can reset instead of delivering it.
+            assert isinstance(await read_message(connection, num_pieces=1), Handshake)
         if failure == "no_handshake":
             await send(connection, metadata, Interested())
             return

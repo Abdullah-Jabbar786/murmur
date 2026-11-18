@@ -9,6 +9,7 @@ import secrets
 from typing import Optional
 
 from core.tcp import TcpTransport
+from core.asyncio_utils import wait_for_cancel_safe
 from core.transport import Connection
 from peer.metadata import Metadata, load_metadata
 from peer.storage import PieceHashError, PieceStore
@@ -44,10 +45,10 @@ class _Session:
 
     async def send(self, message) -> None:
         raw = encode_message(message, num_pieces=self.store.metadata.num_pieces)
-        await asyncio.wait_for(self.connection.send(raw), self.timeout)
+        await wait_for_cancel_safe(self.connection.send(raw), self.timeout)
 
     async def receive(self):
-        return await asyncio.wait_for(read_message(
+        return await wait_for_cancel_safe(read_message(
             self.connection, num_pieces=self.store.metadata.num_pieces), self.timeout)
 
     async def handshake(self) -> set[int]:

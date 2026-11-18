@@ -151,6 +151,17 @@ async def test_disconnect_releases_partial_piece_for_another_source(tmp_path, mo
     async with cluster(tmp_path, [range(4), range(4), ()]) as (bad, good, leecher):
         read = bad.store.read_block
         interrupted = []
+        send = _Session.send
+
+        async def send_partial(session, message):
+            await send(session, message)
+            if session.store is bad.store and isinstance(message, Piece) and message.offset == 0:
+                # A wire send finishing does not mean the download worker has
+                # persisted it. Establish the partial piece before disconnecting.
+                await eventually(lambda: message.piece in leecher.store.started_pieces
+                                 or message.piece in leecher.store.owned_pieces)
+
+        monkeypatch.setattr(_Session, "send", send_partial)
         def disconnect(piece, offset, length):
             if offset:
                 interrupted.append(piece)

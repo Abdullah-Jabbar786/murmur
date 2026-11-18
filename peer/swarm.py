@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from core.tcp import TcpTransport
+from core.asyncio_utils import wait_for_cancel_safe
 from core.transport import Transport
 from peer.choking import ChokingPolicy, PeerRates
 from peer.piece_selection import RarestFirstSelector, count_availability
@@ -172,7 +173,7 @@ class _Link:
                     continue
                 if self.pending:
                     remaining = min(p.deadline for p in self.pending.values()) - loop.time()
-                    await asyncio.wait_for(self.wake.wait(), max(0, remaining))
+                    await wait_for_cancel_safe(self.wake.wait(), max(0, remaining))
                 else:
                     await self.wake.wait()
         finally:

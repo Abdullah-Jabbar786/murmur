@@ -188,6 +188,8 @@ async def test_four_regular_slots_and_timer_rotates_optimistic_slot(tmp_path, mo
         assert not node._links[bytes.fromhex(current)].am_choking
         await remotes[0].send(NotInterested())
         await eventually(lambda: not node._links[remotes[0].peer_id].peer_interested)
+        # Interest flips before the policy finishes its CHOKE/UNCHOKE sends.
+        await eventually(lambda: sum(not link.am_choking for link in node._links.values()) == 5)
         assert node._links[remotes[0].peer_id].am_choking
         assert sum(not link.am_choking for link in node._links.values()) == 5
 
