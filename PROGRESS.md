@@ -137,7 +137,32 @@ skips in 197.16s, warnings treated as errors. In that full run, Stage 3 took
 49.47s and client-server MurmurTP 15.04s. CLI keepalive configuration check
 also passed separately after its final assertion was added. Four changed/new
 Python files pass Python 3.10 syntax checks; whitespace checks pass.
-Follow-up review, Linux CI and merge pending.
+Timeout follow-up merged in PR #31 (`3fd6643`) and pulled into local main.
+18 Nov 2026: A3.4 Wireshark Lua dissector implemented and verified with real
+TShark against synthetic pcapng fixtures. Decodes every v1 header field,
+individual flags, SACK sequences, payload and the odd-offset Internet checksum.
+Handles malformed/truncated packets without Lua range errors; supports Decode
+As on custom UDP ports. All 16 focused tests passed on TShark 4.6.8/Lua 5.4.6.
+CI now installs TShark and requires these tests. Generated captures are marked
+synthetic and ignored; real annotated M3.2 captures/A3.3 topology remain pending.
+A3.4 review, Linux CI and merge pending.
+Final Windows/Python 3.14 full regression: 575 passed, 2 existing Linux TCP
+skips in 107.12s with warnings as errors. The actual Lua/TShark checks ran;
+they were not skipped. Three new Python files pass Python 3.10 syntax checks.
+A3.4 CI follow-up: supplied Linux/Python 3.11 log had 16 TShark Lua-file
+access denials and one five-second swarm shutdown timeout. CI is now pinned to
+ubuntu-24.04 and prints TShark's version. Peer send/handshake and block-request
+waits preserve caller cancellation on simultaneous inner completion, retaining
+the original timeout thresholds. Six new deterministic cancellation cases added;
+focused Windows run: 32 passed in 21.02s. Updated Linux CI remains pending.
+Follow-up full verification exposed three existing test ordering assumptions;
+fixtures now synchronize on slot replacement/block persistence and consume a
+client greeting before closing with an invalid reply. No assertions or deadlines
+were relaxed. Focused peer/cancellation verification: 60 passed in 6.88s.
+Final CI-follow-up local full suite: 581 passed, 2 existing Linux TCP skips in
+115.63s with warnings as errors. Client-server MurmurTP acceptance passed in
+7.98s including unchanged cleanup limit. Seven changed/new Python files pass
+Python 3.10 syntax checks. Updated Linux CI/review/merge still pending.
 Gate S1 is not yet complete: routed topology/evidence remain outstanding.
 Remaining transport work, tracker discovery, routed TCP swarm
 evidence, harness/dashboard integration, and the remaining Gate S2 checks are pending.

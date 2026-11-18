@@ -93,6 +93,7 @@ See the docs for the full design and workflow:
 - [docs/peer-events.md](docs/peer-events.md)
 - [docs/whole-swarm-test.md](docs/whole-swarm-test.md)
 - [docs/algorithm-integration.md](docs/algorithm-integration.md)
+- [docs/wireshark-dissector.md](docs/wireshark-dissector.md)
 
 ## Repo layout
 
