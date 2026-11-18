@@ -206,8 +206,17 @@ pings succeeded, router lookups used the expected WAN next hops, and the
 sampled interfaces had TSO, GSO and GRO disabled. Setup then rebuilt the
 lab with ten leechers per LAN and the added hosts passed the connectivity
 checks. After manual removal of R2, two teardowns restored the original
-named namespace inventory. M1.1 has passed VM acceptance and awaits PR review.
-Gate S1 remains open pending M1.2 shaping and M1.3 routed measurements.
+named namespace inventory. M1.1 merged in PR #34 (`27fdede`), pulled on
+Windows and Ubuntu.
+M1.2: added WAN delay/loss and rate controls, the fixed seed uplink cap,
+apply/clear Make targets, and a routed ping/iperf3 acceptance check.
+Majid's Ubuntu run passed. WAN receiver goodput was 8.30 and 8.60 Mbit/s
+at a 10 Mbit/s cap, then 4.88 Mbit/s with the 5 Mbit/s override. The
+seed-to-LAN-A path delivered 9.53 Mbit/s. Both routers recorded netem drops.
+Repeated clear restored the default queues and teardown completed. The
+[topology guide](infra/README.md#m12-acceptance-on-ubuntu) records the RTT
+and loss measurements. M1.2 awaits PR review and merge. Gate S1 remains
+open pending the M1.3 evidence and remaining gate checks.
 Remaining transport work, tracker discovery, routed TCP swarm
 evidence, harness/dashboard integration, and the remaining Gate S2 checks are pending.
 
