@@ -76,3 +76,20 @@ way and checks for drops at both routers. Finally it clears twice, checks
 the original queues and idle RTT, and removes the test topology.
 The printed rates are application payload Mbit/s. The 10 Mbit/s acceptance
 band is 8–10.8 Mbit/s to allow for protocol overhead and VM scheduling.
+
+### M1.2 acceptance on Ubuntu
+
+Majid ran `sudo make test-netem` on the Ubuntu VM with one leecher per LAN.
+The following measurements come from that single acceptance run.
+
+| Check | Observed |
+|---|---|
+| WAN receiver goodput at 10 Mbit/s | A → B: 8.30 Mbit/s. B → A: 8.60 Mbit/s. |
+| WAN receiver goodput after reapplying at 5 Mbit/s | A → B: 4.88 Mbit/s. |
+| Seed uplink with the WAN set to 5 Mbit/s | Seed → LAN A: 9.53 Mbit/s on the path through R1 only. |
+| Idle RTT with 10 ms per direction | Mean rose from 0.199 to 32.943 ms (+32.74 ms). Shaped minimum was 20.592 ms and maximum was 101.768 ms. All 20 probes returned. |
+| WAN loss with 10% independent loss per direction | 156 of 200 echoes returned (22% loss, compared with 19% expected). Netem counted 17 drops on R1 and 27 on R2. |
+| After clearing twice | All three interfaces returned to their default queues. Mean RTT was 0.138 ms with 20 of 20 replies. Teardown completed. |
+
+The test reported PASS. Keep the observed RTT spread in mind when comparing
+later measurements against a configured delay.
