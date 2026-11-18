@@ -1,5 +1,13 @@
 # AI-use disclosure
 
+M1.1 (Majid, assisted by OpenAI Codex): drafted namespace topology, teardown,
+command wrapper, Make targets, VM acceptance checks and operating instructions.
+Majid verified Ubuntu tools, creation of a temporary network namespace with
+sudo, and the repository revision in the guest. Majid then applied the patch
+to cead7b7 and ran `sudo make test-topo` on Ubuntu 24.04.3. His terminal
+output showed all three checks passing, including routed connectivity,
+a rebuild with 20 leechers, and cleanup after removing one router.
+
 Fill this in as we go, in line with the course policy.
 
 | Date | Who | Tool | What it was used for | How we checked or changed the output |
