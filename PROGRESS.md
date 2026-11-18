@@ -206,7 +206,11 @@ pings succeeded, router lookups used the expected WAN next hops, and the
 sampled interfaces had TSO, GSO and GRO disabled. Setup then rebuilt the
 lab with ten leechers per LAN and the added hosts passed the connectivity
 checks. After manual removal of R2, two teardowns restored the original
-named namespace inventory. M1.1 has passed VM acceptance and awaits PR review.
+named namespace inventory. M1.1 merged in PR #34 (`27fdede`), pulled on
+Windows and Ubuntu.
+M1.2: added WAN delay/loss and rate controls, the fixed seed uplink cap,
+apply/clear Make targets, and a routed ping/iperf3 acceptance check.
+Ubuntu shaping measurements are pending.
 Gate S1 remains open pending M1.2 shaping and M1.3 routed measurements.
 Remaining transport work, tracker discovery, routed TCP swarm
 evidence, harness/dashboard integration, and the remaining Gate S2 checks are pending.

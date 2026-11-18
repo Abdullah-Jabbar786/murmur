@@ -28,8 +28,7 @@ fit the addressing scheme below.
 Each host uses `eth0` and a default route to its LAN gateway. Each router
 bridge owns ports named `p-<host>`. Only the two routers need forwarding.
 Setup disables TSO, GSO and GRO on both endpoints of each veth pair.
-Shaping and impairment belong to M1.2. The dashboard namespace reserves
-its address for a future workload.
+The dashboard namespace reserves its address for a future workload.
 
 The lab reserves namespace names `murmur-r1`, `murmur-r2`, `murmur-tracker`,
 `murmur-seed`, `murmur-dashboard`, and `murmur-a1` through `murmur-a244`
@@ -39,3 +38,41 @@ teardown serialize using `/run/lock/murmur-topology.lock`. All virtual links
 and bridges live within the reserved namespaces. After an interruption, rerun
 `sudo make topo-down`. The test checks the namespace list against its starting
 inventory after both partial-state and repeated teardown.
+
+## WAN and seed shaping (M1.2)
+
+From the Ubuntu repository root, build the topology, then apply the baseline:
+
+```bash
+sudo make topo
+sudo make netem
+sudo bash infra/run_in_ns.sh r1 tc -s qdisc show dev wan0
+sudo bash infra/run_in_ns.sh r2 tc -s qdisc show dev wan0
+sudo bash infra/run_in_ns.sh seed tc -s qdisc show dev eth0
+sudo make netem ARGS="--delay 50 --loss 2 --rate 10"
+sudo make netem-clear
+sudo make topo-down
+```
+
+`bash infra/netem.sh apply` accepts the same flags. Each apply starts from
+defaults: 10 ms **per WAN direction** (20 ms added RTT), 0% independent
+packet loss per direction, and 10 Mbit/s on each WAN egress. For E2 use
+one-way delays of 10, 50, or 100 ms. An ICMP echo crosses the WAN twice:
+with loss probability p per direction its expected loss is 1 − (1 − p)².
+`--rate` changes the WAN only. The seed's egress stays at 10 Mbit/s.
+
+On each router's wan0, netem (handle 420:, 1000-packet queue) delays and
+drops packets before the parent token bucket (410:, 32 KiB burst) meters
+transmission. The seed uses a standalone TBF on eth0 with a 50 ms queue
+latency setting. Each apply replaces the previous lab profile. A failure
+during installation clears the lab profile on all three endpoints. Clear
+can be repeated. Rebuilding the topology removes shaping with its veths.
+
+On a clean lab run `sudo make test-netem` (requires iperf3, iproute2,
+iputils-ping and Python 3). It measures the added idle RTT, receiver TCP
+goodput in both WAN directions, an overridden WAN rate, and the seed upload
+to LAN A on a path bypassing the WAN. It samples 200 pings at 10% loss each
+way and checks for drops at both routers. Finally it clears twice, checks
+the original queues and idle RTT, and removes the test topology.
+The printed rates are application payload Mbit/s. The 10 Mbit/s acceptance
+band is 8–10.8 Mbit/s to allow for protocol overhead and VM scheduling.

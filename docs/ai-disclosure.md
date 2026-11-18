@@ -1,5 +1,12 @@
 # AI-use disclosure
 
+M1.2 (Majid, assisted by OpenAI Codex): implemented and documented the
+WAN netem/TBF and seed TBF configuration, profile replacement and cleanup.
+Prepared a Linux acceptance run using ping, per-interface qdisc counters
+and iperf3 receiver goodput. On Windows, Bash syntax and eight invalid CLI
+cases passed, the acceptance script parsed as Python 3.10, and whitespace
+checks passed. Ubuntu measurements and review are pending.
+
 M1.1 (Majid, assisted by OpenAI Codex): drafted namespace topology, teardown,
 command wrapper, Make targets, VM acceptance checks and operating instructions.
 Majid verified Ubuntu tools, creation of a temporary network namespace with
