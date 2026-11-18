@@ -215,8 +215,14 @@ at a 10 Mbit/s cap, then 4.88 Mbit/s with the 5 Mbit/s override. The
 seed-to-LAN-A path delivered 9.53 Mbit/s. Both routers recorded netem drops.
 Repeated clear restored the default queues and teardown completed. The
 [topology guide](infra/README.md#m12-acceptance-on-ubuntu) records the RTT
-and loss measurements. M1.2 awaits PR review and merge. Gate S1 remains
-open pending the M1.3 evidence and remaining gate checks.
+and loss measurements. M1.2 merged in PR #35 (`d590b24`).
+M1.3: at that revision the focused 64 MiB localhost TCP I1 test passed
+on Windows. Majid's Ubuntu route tables and ICMP traceroute confirmed
+a1 → R1 → R2 → b1. Five of five pings returned, with 36.775 ms mean RTT.
+The [Gate S1 evidence](captures/s1/README.md) includes these observations
+and the earlier M1.2 iperf3 measurements. All four Ubuntu screenshots were
+checked against the terminal output. The technical Gate S1 checks passed;
+the M1.3 evidence is ready for team review and gate tagging after merge.
 Remaining transport work, tracker discovery, routed TCP swarm
 evidence, harness/dashboard integration, and the remaining Gate S2 checks are pending.
 
