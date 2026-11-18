@@ -1,5 +1,14 @@
 # AI-use disclosure
 
+M1.3 (Majid, assisted by OpenAI Codex): checked the S1 requirements against
+the merged code and Majid's prior Ubuntu measurements, prepared the evidence
+index, and reran the single 64 MiB localhost TCP I1 test at d590b24 on
+Windows (1 passed in 8.59 s). Majid supplied the Ubuntu route tables,
+three-hop traceroute, ping summary and an extract from his earlier iperf3
+log. Codex visually checked Majid's four Ubuntu screenshots against the
+reported routes, hop addresses, ping statistics and throughput figures,
+and linked the original PNGs from the evidence index.
+
 M1.2 (Majid, assisted by OpenAI Codex): implemented and documented the
 WAN netem/TBF and seed TBF configuration, profile replacement and cleanup.
 Prepared a Linux acceptance run using ping, per-interface qdisc counters
