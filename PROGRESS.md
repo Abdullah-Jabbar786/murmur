@@ -137,7 +137,18 @@ skips in 197.16s, warnings treated as errors. In that full run, Stage 3 took
 49.47s and client-server MurmurTP 15.04s. CLI keepalive configuration check
 also passed separately after its final assertion was added. Four changed/new
 Python files pass Python 3.10 syntax checks; whitespace checks pass.
-Follow-up review, Linux CI and merge pending.
+Timeout follow-up merged in PR #31 (`3fd6643`) and pulled into local main.
+18 Nov 2026: A3.4 Wireshark Lua dissector implemented and verified with real
+TShark against synthetic pcapng fixtures. Decodes every v1 header field,
+individual flags, SACK sequences, payload and the odd-offset Internet checksum.
+Handles malformed/truncated packets without Lua range errors; supports Decode
+As on custom UDP ports. All 16 focused tests passed on TShark 4.6.8/Lua 5.4.6.
+CI now installs TShark and requires these tests. Generated captures are marked
+synthetic and ignored; real annotated M3.2 captures/A3.3 topology remain pending.
+A3.4 review, Linux CI and merge pending.
+Final Windows/Python 3.14 full regression: 575 passed, 2 existing Linux TCP
+skips in 107.12s with warnings as errors. The actual Lua/TShark checks ran;
+they were not skipped. Three new Python files pass Python 3.10 syntax checks.
 Gate S1 is not yet complete: routed topology/evidence remain outstanding.
 Remaining transport work, tracker discovery, routed TCP swarm
 evidence, harness/dashboard integration, and the remaining Gate S2 checks are pending.

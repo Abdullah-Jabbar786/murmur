@@ -9,4 +9,10 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -r requirements.txt
+      - name: Install TShark for Lua dissector acceptance
+        run: |
+          sudo apt-get update
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y tshark
       - run: python -m pytest -q
+        env:
+          MURMUR_REQUIRE_TSHARK: "1"
