@@ -163,6 +163,38 @@ Final CI-follow-up local full suite: 581 passed, 2 existing Linux TCP skips in
 115.63s with warnings as errors. Client-server MurmurTP acceptance passed in
 7.98s including unchanged cleanup limit. Seven changed/new Python files pass
 Python 3.10 syntax checks. Updated Linux CI/review/merge still pending.
+A3.4 dissector and CI follow-up merged in PR #32 (`4e2fb59`) and pulled into
+clean local main. Prior CI history above records pre-merge verification.
+18 Nov 2026: A4.1 local flowbench foundation implemented: one bulk file over
+Contract 2 TCP/MurmurTP (Loopback tests), readiness/verified SHA-256 receipt,
+bounded streaming, monotonic duration/goodput and Contract 3 rate/transport/
+summary events. Setup, transfer and close have a shared deadline; cancellation
+joins workers and closes the owned endpoint. Focused tests: 24 passed.
+This does not complete E4/E5: routed Linux runs, concurrent-flow scheduling,
+steady-state fairness, ss evidence, normalized metric export and analysis remain
+pending. Flowbench review/Linux CI/merge pending.
+Final local verification: 24 focused tests passed in 4.86s, including final CLI
+transport flags. Full Windows/Python 3.14 suite: 605 passed, 2 existing Linux TCP
+skips in 196.43s, warnings as errors. Two new Python files pass Python 3.10 syntax
+checks; Git whitespace checks pass. These are functional localhost checks, not
+routed E4/E5 measurements.
+18 Nov 2026: A4.1 CI follow-up: supplied push log reports 606 passed and one
+MurmurTP swarm failure. All files completed, but a late PIECE was rejected and
+the zero-waste accounting wait expired. Two deterministic regressions reproduce
+the same protocol error before the fix: CHOKE, reissue the same block, then
+receive both replies (including repeated abandonments). Track bounded reply
+allowances per abandoned request; accept the block once and separately count
+authorized late payload as bytes_discarded. Unsolicited replies and more than
+64 unresolved abandonments still disconnect. Whole-swarm accounting now checks
+sent = accepted + discarded, retaining hash, useful-byte, cleanup and deadline
+checks. A real two-node forced retry verifies the extra block and exact totals.
+Focused swarm/flowbench verification: 64 passed in 43.69s; the added 64/65 limit
+check and both reissue regressions then passed together (3 passed in 2.12s).
+Final full Windows/Python 3.14 regression: 609 passed, 2 existing Linux TCP
+skips in 224.22s, warnings as errors. Whole-swarm MurmurTP took 20.52s (swarm)
+and 21.48s (client-server), within unchanged deadlines. Four changed Python
+files pass Python 3.10 syntax checks; Git whitespace checks pass. Updated Linux
+CI, review and merge remain pending.
 Gate S1 is not yet complete: routed topology/evidence remain outstanding.
 Remaining transport work, tracker discovery, routed TCP swarm
 evidence, harness/dashboard integration, and the remaining Gate S2 checks are pending.

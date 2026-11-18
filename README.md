@@ -49,7 +49,7 @@ Client / Seed / Leecher
 | S1 | Sprint 1 | Topology, tracker, transport, codecs, loss shim | in progress |
 | S2 | Sprint 2 | TCP swarm with rarest-first and choking | in progress: A2.4 mock-results analysis implemented; routed evidence and harness pending |
 | S3 | Sprint 3 | MurmurTP swarm at 5% loss, one config flag | in progress: A3.2 transport/events/local swarm integration merged; routed acceptance pending |
-| S4 | Sprint 4 | E1–E5 experiments and graphs | planned |
+| S4 | Sprint 4 | E1–E5 experiments and graphs | local flowbench foundation implemented; routed experiments and analysis pending |
 | S5 | Sprint 5 | Report, demo, verification, polishing | planned |
 
 ## Results
@@ -94,6 +94,7 @@ See the docs for the full design and workflow:
 - [docs/whole-swarm-test.md](docs/whole-swarm-test.md)
 - [docs/algorithm-integration.md](docs/algorithm-integration.md)
 - [docs/wireshark-dissector.md](docs/wireshark-dissector.md)
+- [docs/flowbench.md](docs/flowbench.md)
 
 ## Repo layout
 

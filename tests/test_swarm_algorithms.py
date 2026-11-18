@@ -81,6 +81,54 @@ async def next_request(session):
             return message
 
 
+@pytest.mark.parametrize("abandonments", [1, 2])
+async def test_reissued_block_accepts_one_reply_and_bounds_late_replies(tmp_path, abandonments):
+    async with network(tmp_path, pipelining_depth=1) as (node, peer):
+        source = await peer([0])
+        link = node._links[source.peer_id]
+        await source.send(Unchoke())
+        request = await next_request(source)
+        key = (request.piece, request.offset, request.length)
+        for _ in range(abandonments):
+            await source.send(Choke())
+            await eventually(lambda: link.peer_choking and not link.pending)
+            await source.send(Unchoke())
+            retry = await next_request(source)
+            assert (retry.piece, retry.offset, retry.length) == key
+        reply = Piece(request.piece, request.offset, source.store.read_block(*key))
+        # Responses carry no request generation. The first matching reply can
+        # satisfy the retry; each abandoned request permits only one extra reply.
+        for _ in range(abandonments + 1):
+            await source.send(reply)
+        await source.send(Interested())  # Reader barrier after all the PIECEs.
+        await eventually(lambda: link.peer_interested or node.errors)
+        assert not node.errors
+        await eventually(lambda: node.store.owned_pieces == frozenset({0}))
+        assert node.bytes_received == request.length
+        assert node.bytes_discarded == abandonments * request.length
+        assert not link.pending and not link.retired and not node._claims
+        # A further duplicate has no outstanding/abandoned request to justify it.
+        await source.send(reply)
+        await eventually(lambda: bool(node.errors))
+        assert any("PIECE does not match outstanding REQUEST" in error for error in node.errors)
+
+
+async def test_abandoned_reply_limit_counts_retries_of_the_same_block(tmp_path):
+    async with network(tmp_path, pipelining_depth=1) as (node, peer):
+        source = await peer([0])
+        link = node._links[source.peer_id]
+        for count in range(1, 66):
+            await source.send(Unchoke())
+            request = await next_request(source)
+            assert request.piece == 0 and request.offset == 0
+            await source.send(Choke())
+            await eventually(lambda: node.errors or (link.peer_choking and not link.pending))
+            if count <= 64:
+                assert not node.errors and link.retired.total() == count
+        assert any("too many abandoned requests" in error for error in node.errors)
+        assert node.bytes_received == node.bytes_discarded == 0
+
+
 async def test_have_during_not_interested_send_reannounces_interest(tmp_path, monkeypatch):
     async with network(tmp_path) as (node, peer):
         source = await peer([0])

@@ -24,7 +24,7 @@ namespace setup is required. Pytest may retain temporary files after success.
 
 | Mode | Connections | Additional acceptance checks |
 |---|---|---|
-| `swarm` | Only two leechers connect to the seed; the other eight use relay paths, with extra cross-links for multiple sources | At least eight file-equivalents are uploaded by leechers; no duplicate payload downloads |
+| `swarm` | Only two leechers connect to the seed; the other eight use relay paths, with extra cross-links for multiple sources | At least eight file-equivalents are uploaded by leechers; no duplicate accepted blocks |
 | `client_server` | All ten leechers connect directly to the origin seed | Every leecher uploads zero payload bytes; seed uploads exactly ten file-equivalents |
 
 In the swarm case, nonseed links are established before introducing seed data.
@@ -37,7 +37,12 @@ All cases verify:
 - Every leecher owns all pieces and has zero bytes left.
 - Independent disk reads match every metadata piece hash and the source's
   whole-file SHA-256, with exact file size and EOF.
-- Each leecher receives exactly one file's payload, with no hash failures.
+- Each leecher accepts exactly one file's payload, with no hash failures.
+- Total sent payload equals the ten accepted file-equivalents plus explicitly
+  counted `bytes_discarded` from late responses to requests abandoned on CHOKE.
+  Choking and retrying can produce these extra replies even on a lossless link.
+  Only a matching abandoned request authorizes a discard; unsolicited replies
+  still fail. The origin's two-file bound includes this accounted overhead.
 - Node summaries match payload counters and report completion and zero hash
   failures. Loopback retransmissions are zero; MurmurTP reports actual counters.
 - Each node logs one completion and one final summary, plus all verified pieces.
@@ -57,7 +62,8 @@ below 30 seconds. MurmurTP scenarios allow 60 seconds for transfer and 70 second
 total; all cases have a five-second cleanup deadline. UDP test timing uses short
 explicit RTO/probe overrides and no injected loss; separate Stage 7 relay/event
 tests inject 5% loss. All cases include file verification.
-Timeout diagnostics show each peer's remaining bytes and recent errors.
+Timeout diagnostics show each peer's remaining bytes, recent errors, sent,
+accepted and discarded byte counts, and outstanding piece reservations.
 The initial Windows/Python 3.14 run passed both scenarios in **4.57 seconds**
 total; runtime varies with the machine. `--durations=2` reports measured case
 times. The under-30-second assertion applies to each Loopback whole-swarm scenario,

@@ -259,11 +259,51 @@ async def test_choke_releases_pending_request_and_ignores_late_block(tmp_path, m
         await eventually(lambda: delayed_keys[0] not in leecher._links[seed.peer_id].retired)
         assert not leecher._links[seed.peer_id].pending
         assert leecher.bytes_received == 0
+        assert leecher.bytes_discarded == delayed_keys[0][2]
         assert not leecher.store.started_pieces
         await seed.set_upload_allowed(leecher.peer_id, True)
         await leecher.wait_complete(5)
         assert leecher.store.path.read_bytes() == DATA
         assert not leecher.errors
+
+
+async def test_choke_retry_before_original_reply_preserves_accounting(tmp_path, monkeypatch):
+    class SingleRequestNode(SwarmNode):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, pipelining_depth=1, **kwargs)
+
+    async with cluster(tmp_path, [range(4), ()], node_type=SingleRequestNode) as (seed, leecher):
+        blocked, release = asyncio.Event(), asyncio.Event()
+        requests = []
+        original = swarm._Link.send
+
+        async def delayed(link, message):
+            if link.node is leecher and isinstance(message, Request):
+                requests.append((message.piece, message.offset, message.length))
+            if link.node is seed and isinstance(message, Piece) and not blocked.is_set():
+                blocked.set()
+                await release.wait()
+            await original(link, message)
+
+        monkeypatch.setattr(swarm._Link, "send", delayed)
+        try:
+            await leecher.connect(seed.address)
+            await asyncio.wait_for(blocked.wait(), 2)
+            await seed.set_upload_allowed(leecher.peer_id, False)
+            await eventually(lambda: not leecher._claims)
+            await seed.set_upload_allowed(leecher.peer_id, True)
+            await eventually(lambda: len(requests) == 2)
+            assert requests[0] == requests[1]
+            release.set()
+            await leecher.wait_complete(5)
+            await eventually(lambda: seed.bytes_sent == len(DATA) + requests[0][2])
+            assert leecher.bytes_discarded == requests[0][2]
+            assert leecher.bytes_received == len(DATA)
+            assert seed.bytes_sent == leecher.bytes_received + leecher.bytes_discarded
+            assert leecher.store.path.read_bytes() == DATA
+            assert not seed.errors and not leecher.errors and not leecher._claims
+        finally:
+            release.set()
 
 
 async def test_request_timeout_releases_reservations(tmp_path, monkeypatch):

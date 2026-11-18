@@ -43,8 +43,15 @@ and upload. A hash failure clears the piece and permits two retries per source
 by default. With a pipeline, several pieces can fail before one exhausts retries.
 
 CHOKE abandons unanswered requests and releases reservations. Matching late
-responses are ignored; at most 64 unresolved abandoned keys are retained per
-connection before disconnecting. Timeout, disconnect, and shutdown cancel
+responses are ignored. If the same block is requested again, the first matching
+response satisfies the current request; the wire carries no request generation.
+An allowance for each abandoned request remains until its extra reply arrives.
+Repeated abandonments of one key count separately toward the limit of 64
+unresolved abandoned requests per connection; exceeding it disconnects the peer.
+Replies beyond this allowance remain protocol errors. `bytes_discarded` counts
+the late block payload separately from accepted `bytes_received`, including
+when it arrives before the worker consumes the accepted reply.
+Timeout, disconnect, and shutdown cancel
 pending work and release claims. Received partial blocks survive for retry from
 another source. Unsolicited or mismatched responses terminate that session.
 
