@@ -1,7 +1,7 @@
 """Bidirectional peers with rarest-first selection, choking, and pipelining."""
 
 import asyncio
-from collections import deque
+from collections import Counter, deque
 from dataclasses import dataclass
 from typing import Optional
 
@@ -35,7 +35,7 @@ class _Link:
         self.send_lock = asyncio.Lock()
         self.pending = {}
         self.peak_pending = 0
-        self.retired = set()
+        self.retired = Counter()
         self.worker = None
         self.keepalive = None
         self._last_sent = asyncio.get_running_loop().time()
@@ -87,9 +87,9 @@ class _Link:
                 if self.peer_choking:
                     for key, pending in self.pending.items():
                         if not pending.future.done():
-                            self.retired.add(key)
+                            self.retired[key] += 1
                             pending.future.set_result(None)
-                    if len(self.retired) > 64:
+                    if self.retired.total() > 64:
                         raise PeerProtocolError("too many abandoned requests")
             elif isinstance(message, (Interested, NotInterested)):
                 self.peer_interested = isinstance(message, Interested)
@@ -110,14 +110,18 @@ class _Link:
             elif isinstance(message, Piece):
                 key = (message.piece, message.offset, len(message.data))
                 pending = self.pending.get(key)
-                if key in self.retired and (pending is None or
-                        (pending.future.done() and pending.future.result() is None)):
-                    self.retired.remove(key)
-                    continue  # Late response to a request abandoned on CHOKE.
-                if pending is None or pending.future.done():
+                if pending is not None and not pending.future.done():
+                    # The wire has no request generation: either the original
+                    # reply or the retry's reply may satisfy this pending block.
+                    # Keep the abandoned-reply allowance for the other reply.
+                    pending.future.set_result(message.data)
+                elif self.retired[key]:
+                    self.retired[key] -= 1
+                    if not self.retired[key]:
+                        del self.retired[key]
+                    self.node.bytes_discarded += len(message.data)
+                else:
                     raise PeerProtocolError("PIECE does not match outstanding REQUEST")
-                self.retired.discard(key)
-                pending.future.set_result(message.data)
             else:
                 raise PeerProtocolError("unexpected message after initial BITFIELD")
             self.wake.set()
@@ -280,6 +284,7 @@ class SwarmNode:
         self.io_timeout, self.request_timeout = io_timeout, request_timeout
         self.max_piece_retries = max_piece_retries
         self.bytes_received = self.bytes_sent = self.hash_failures = 0
+        self.bytes_discarded = 0  # Bounded late replies to requests abandoned on CHOKE.
         self.errors = deque(maxlen=32)
         self._links = {}
         self._claims = {}

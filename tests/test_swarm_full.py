@@ -82,7 +82,10 @@ async def test_one_seed_ten_leechers_complete_and_release_resources(tmp_path, mo
             await asyncio.gather(*(node.wait_complete(transfer_timeout) for node in nodes[1:]))
             # Send completion may be scheduled just after the receiver verifies.
             # Also allow workers to release their final piece reservations.
+            # CHOKE may abandon an already-sent response. Account for those
+            # explicitly rather than requiring zero application-level waste.
             while (sum(node.bytes_sent for node in nodes) != LEECHER_COUNT * PAYLOAD_SIZE
+                   + sum(node.bytes_discarded for node in nodes)
                    or any(node._claims for node in nodes)):
                 await asyncio.sleep(0.001)
 
@@ -90,7 +93,9 @@ async def test_one_seed_ten_leechers_complete_and_release_resources(tmp_path, mo
             await asyncio.wait_for(transfer(), transfer_timeout)
         except asyncio.TimeoutError:
             pytest.fail("whole-swarm transfer exceeded deadline: " + repr([
-                {"peer": index, "left": node.store.left, "errors": list(node.errors)}
+                {"peer": index, "left": node.store.left, "errors": list(node.errors),
+                 "sent": node.bytes_sent, "received": node.bytes_received,
+                 "discarded": node.bytes_discarded, "claims": list(node._claims)}
                 for index, node in enumerate(nodes)]))
 
         for node in nodes:
@@ -103,7 +108,8 @@ async def test_one_seed_ten_leechers_complete_and_release_resources(tmp_path, mo
         if mode == "swarm":
             assert nodes[0].peer_id not in set().union(*(node.peer_ids for node in nodes[3:]))
             assert sum(node.bytes_sent for node in nodes[1:]) >= 8 * PAYLOAD_SIZE
-            assert 0 < nodes[0].bytes_sent <= 2 * PAYLOAD_SIZE
+            assert 0 < nodes[0].bytes_sent <= 2 * PAYLOAD_SIZE + sum(
+                node.bytes_discarded for node in nodes)
         else:
             assert nodes[0].bytes_sent == LEECHER_COUNT * PAYLOAD_SIZE
             assert all(node.bytes_sent == 0 for node in nodes[1:])

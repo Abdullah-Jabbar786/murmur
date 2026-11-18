@@ -178,6 +178,23 @@ transport flags. Full Windows/Python 3.14 suite: 605 passed, 2 existing Linux TC
 skips in 196.43s, warnings as errors. Two new Python files pass Python 3.10 syntax
 checks; Git whitespace checks pass. These are functional localhost checks, not
 routed E4/E5 measurements.
+18 Nov 2026: A4.1 CI follow-up: supplied push log reports 606 passed and one
+MurmurTP swarm failure. All files completed, but a late PIECE was rejected and
+the zero-waste accounting wait expired. Two deterministic regressions reproduce
+the same protocol error before the fix: CHOKE, reissue the same block, then
+receive both replies (including repeated abandonments). Track bounded reply
+allowances per abandoned request; accept the block once and separately count
+authorized late payload as bytes_discarded. Unsolicited replies and more than
+64 unresolved abandonments still disconnect. Whole-swarm accounting now checks
+sent = accepted + discarded, retaining hash, useful-byte, cleanup and deadline
+checks. A real two-node forced retry verifies the extra block and exact totals.
+Focused swarm/flowbench verification: 64 passed in 43.69s; the added 64/65 limit
+check and both reissue regressions then passed together (3 passed in 2.12s).
+Final full Windows/Python 3.14 regression: 609 passed, 2 existing Linux TCP
+skips in 224.22s, warnings as errors. Whole-swarm MurmurTP took 20.52s (swarm)
+and 21.48s (client-server), within unchanged deadlines. Four changed Python
+files pass Python 3.10 syntax checks; Git whitespace checks pass. Updated Linux
+CI, review and merge remain pending.
 Gate S1 is not yet complete: routed topology/evidence remain outstanding.
 Remaining transport work, tracker discovery, routed TCP swarm
 evidence, harness/dashboard integration, and the remaining Gate S2 checks are pending.
