@@ -233,6 +233,19 @@ review transfers each produced two complete, SHA-256-verified downloads.
 The focused dashboard and peer event tests passed (16 tests). Chrome rendered
 the recorded MurmurTP output. Routed dashboard integration and Gate S2 remain open.
 
+M2.1 merged in PR #37 (`57068b5`). M2.2 adds the
+[routed TCP runner](experiments/README.md#m22-routed-tcp-swarm) and tracker
+discovery for swarm peers. On Windows, one seed and ten leechers used real
+localhost TCP and an HTTP tracker. All ten downloaded files matched the seed.
+The Windows regression suite passed 619 tests with three platform skips.
+Majid's Ubuntu run `20261119T201545Z-e1a12b8c` passed M2.2. One TCP seed
+served a swarm of five leechers per LAN. The WAN used 10 ms delay per
+direction, 0% configured loss and a 10 Mbit/s cap, with a 10 Mbit/s seed uplink.
+All ten 67,108,864-byte files matched the seed's SHA-256
+(`45581d305941fbabc46eac1027f88e99fdc8dfd3de474343dc93a61766d2fd61`).
+The leechers uploaded 589,758,464 bytes in total and topology teardown completed.
+Gate S2 remains open, including packet capture and dashboard evidence from a routed run.
+
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
 | 1 | | | |

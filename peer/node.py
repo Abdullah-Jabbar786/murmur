@@ -266,6 +266,9 @@ async def _run_cli(args) -> None:
             raise ValueError("config mode must be swarm or client_server")
         peers = list(args.peer)
         is_seed = args.mode == "seed"
+        tracker_url = getattr(args, "tracker_url", None)
+        if tracker_url and (distribution_mode != "swarm" or peers):
+            raise ValueError("--tracker-url requires swarm mode with no explicit --peer")
         if distribution_mode == "client_server":
             if is_seed:
                 if peers or args.origin_seed is not None:
@@ -295,6 +298,12 @@ async def _run_cli(args) -> None:
             try:
                 await node.start((args.host, port))
                 print(f"Peer listening on {node.address[0]}:{node.address[1]}", flush=True)
+                if tracker_url:
+                    from peer.discovery import serve_discovered
+                    from tracker.client import TrackerClient
+
+                    await serve_discovered(node, TrackerClient(tracker_url), args.total_timeout, event_log)
+                    return
                 for address in peers:
                     await node.connect(address)
                 await node.wait_complete(args.total_timeout)
@@ -354,6 +363,7 @@ def main() -> None:
             sub.add_argument("--port", type=int, default=None if name == "swarm" else 6881)
             if name == "swarm":
                 sub.add_argument("--peer", type=_endpoint, action="append", default=[])
+                sub.add_argument("--tracker-url", help="discover swarm peers through this announce URL")
                 sub.add_argument("--mode", choices=("create", "resume", "seed"), default="create")
                 sub.add_argument("--total-timeout", type=float, default=1800.0)
                 sub.add_argument("--config", help="JSON transport, distribution mode, pipeline and choking settings")
