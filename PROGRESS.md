@@ -226,6 +226,13 @@ the M1.3 evidence is ready for team review and gate tagging after merge.
 Remaining transport work, tracker discovery, routed TCP swarm
 evidence, harness/dashboard integration, and the remaining Gate S2 checks are pending.
 
+M1.3 evidence merged in PR #36 (`ad4fbef`). Majid reviewed the M2.1 dashboard
+locally and approved it for push. The [dashboard](dashboard/README.md) follows the supplied HTML
+design and reads incremental peer events. Windows localhost TCP and MurmurTP
+review transfers each produced two complete, SHA-256-verified downloads.
+The focused dashboard and peer event tests passed (16 tests). Chrome rendered
+the recorded MurmurTP output. Routed dashboard integration and Gate S2 remain open.
+
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
 | 1 | | | |

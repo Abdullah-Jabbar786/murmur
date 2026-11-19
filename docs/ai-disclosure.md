@@ -1,5 +1,13 @@
 # AI-use disclosure
 
+M2.1 (Majid, assisted by OpenAI Codex): adapted the supplied HTML design
+to local log polling, implemented a localhost transfer review and refreshed
+the Contract 3 fixture. Codex tested partial writes, cursor resets, HTTP
+integration and actual TCP/MurmurTP transfers with independent whole-file
+hash comparisons. Windows: 16 focused tests passed. Headless Chrome rendered
+a recorded MurmurTP run with two completed downloads and a verified piece map.
+Majid completed the dashboard visual review and approved M2.1 for push.
+
 M1.3 (Majid, assisted by OpenAI Codex): checked the S1 requirements against
 the merged code and Majid's prior Ubuntu measurements, prepared the evidence
 index, and reran the single 64 MiB localhost TCP I1 test at d590b24 on

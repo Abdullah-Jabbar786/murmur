@@ -167,7 +167,8 @@ async def test_default_sampler_runs_once_a_second_and_seed_logs_idle_rates(tmp_p
 async def test_rate_math_and_cumulative_retx_not_double_counted(tmp_path, unknown):
     now = [0.0]
     node = SimpleNamespace(mode="swarm", is_seed=False, bytes_received=0, bytes_sent=0,
-                           hash_failures=0, store=SimpleNamespace(owned_pieces=(), complete=False),
+                           hash_failures=0, store=SimpleNamespace(owned_pieces=(), complete=False,
+                               metadata=SimpleNamespace(length=0, piece_length=262144, num_pieces=0)),
                            _complete=asyncio.Event())
     class Connection:
         peer_addr = ("127.0.0.1", 9000)

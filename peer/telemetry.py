@@ -39,8 +39,10 @@ class PeerEvents:
             return
         self._started = True
         self._last_time = self.clock()
+        metadata = self.node.store.metadata
         self.emit("join", mode=self.node.mode, origin_seed=self.node.is_seed,
-                  initial_complete=self.node.store.complete)
+                  initial_complete=self.node.store.complete, file_bytes=metadata.length,
+                  piece_bytes=metadata.piece_length, piece_count=metadata.num_pieces)
         for piece in sorted(self.node.store.owned_pieces):
             self.emit("have", piece=piece, initial=True)
         if self.node.store.complete:
