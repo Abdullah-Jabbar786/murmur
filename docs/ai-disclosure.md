@@ -4,7 +4,11 @@ M2.3 (Majid, assisted by OpenAI Codex). Codex connected a foreground tcpdump
 capture to the swarm runner and added tests for readiness, interruption,
 early exit and pcap readback. On Windows, Bash rejected six invalid capture
 invocations and Npcap matched the expected results on six offline frames.
-The live capture requires verification on Ubuntu.
+Majid ran the capture on Ubuntu. Codex recorded the runner's packet count,
+trace size, verified downloads and teardown from his terminal output.
+Majid extracted the first 200 frames. Codex converted the sample to pcapng,
+compared each packet record with the source and checked the handshake,
+endpoints and TCP data with TShark on Windows.
 
 M2.2 (Majid, assisted by OpenAI Codex). Codex implemented the routed TCP
 runner and connected the swarm peer command to tracker discovery. A Windows
