@@ -3,8 +3,9 @@
 M2.2 (Majid, assisted by OpenAI Codex). Codex implemented the routed TCP
 runner and connected the swarm peer command to tracker discovery. A Windows
 test used ten TCP leechers, verified their final summaries and file hashes,
-and checked that a modified output fails verification. The Ubuntu routed
-run still needs separate verification.
+and checked that a modified output fails verification. Majid ran the 64 MiB
+test on the Ubuntu VM. Codex recorded the ten verified downloads, SHA-256,
+aggregate leecher uploads and successful teardown from Majid's terminal output.
 
 M2.1 (Majid, assisted by OpenAI Codex): adapted the supplied HTML design
 to local log polling, implemented a localhost transfer review and refreshed
