@@ -7,4 +7,6 @@ for the M1.2 WAN/seed bandwidth, delay, loss and clear checks.
 
 For one routed TCP swarm, use the [M2.2 runner instructions](../experiments/README.md#m22-routed-tcp-swarm).
 The command starts the tracker and all eleven peers, saves their logs and
-checks every downloaded file. Packet capture and the E1–E5 runs come later.
+checks every downloaded file. With tcpdump installed, the same command
+saves and verifies the [M2.3 WAN capture](../experiments/README.md#m23-wan-packet-capture).
+The E1–E5 runs are pending.
