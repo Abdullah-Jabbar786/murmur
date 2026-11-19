@@ -246,6 +246,12 @@ All ten 67,108,864-byte files matched the seed's SHA-256
 The leechers uploaded 589,758,464 bytes in total and topology teardown completed.
 Gate S2 remains open, including packet capture and dashboard evidence from a routed run.
 
+M2.2 merged in PR #38 (`ae6e936`). M2.3 adds supervised tcpdump capture on
+R1's WAN and verifies the saved TCP packet count after the peers stop.
+Windows checks exercised capture supervision and the filter on offline frames.
+The Windows regression suite passed 626 tests with three platform skips.
+The live Ubuntu capture, reviewed sample and remaining Gate S2 evidence are pending.
+
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
 | 1 | | | |

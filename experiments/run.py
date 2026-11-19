@@ -1,11 +1,12 @@
-"""Run the M2.2 TCP swarm on the Ubuntu namespace topology."""
+"""Run the routed TCP swarm on Ubuntu and save its WAN packet capture."""
 import argparse
-from contextlib import ExitStack
+from contextlib import ExitStack, contextmanager
 from datetime import datetime, timezone
 import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import signal
 import subprocess
 import sys
@@ -103,7 +104,42 @@ def verify(run_dir, peers, size, expected_hash, log):
     return summaries
 
 
-def run_swarm(run_dir, size, timeout, peers, tracker_ip, config, prefix):
+@contextmanager
+def capture_wan(run_dir, port):
+    trace = run_dir / "r1-wan0.pcap"
+    log_path = run_dir / "capture.log"
+    with trace.open("xb") as output, log_path.open("xb") as errors:
+        proc = subprocess.Popen(["bash", "infra/capture.sh", str(port)], cwd=ROOT,
+                                stdout=output, stderr=errors, start_new_session=True)
+        try:
+            deadline = time.monotonic() + 10
+            while b"listening on wan0," not in log_path.read_bytes():
+                if proc.poll() is not None or time.monotonic() >= deadline:
+                    raise RuntimeError(f"capture did not start; see {log_path}")
+                time.sleep(0.05)
+            yield proc
+            if proc.poll() is not None:
+                raise RuntimeError(f"capture exited before swarm shutdown; see {log_path}")
+        finally:
+            stop({"capture": proc})
+
+    if proc.returncode != 0:
+        raise RuntimeError(f"capture shutdown exited with {proc.returncode}; see {log_path}")
+    # Read the entire closed file and reconcile with tcpdump's live count.
+    # A global header alone, a partial write or missing records cannot pass.
+    with trace.open("rb") as saved:
+        counted = subprocess.run(["tcpdump", "--count", "-nn", "-r", "-", f"tcp port {port}"],
+                                 stdin=saved, capture_output=True, text=True)
+    if counted.returncode:
+        raise ValueError(f"unreadable capture {trace}: {counted.stderr.strip()}")
+    count = re.fullmatch(r"(\d+) packets?", counted.stdout.strip())
+    live = re.search(rb"(?m)^(\d+) packets? captured\s*$", log_path.read_bytes())
+    if not count or not live or int(count[1]) == 0 or int(count[1]) != int(live[1]):
+        raise ValueError(f"capture packet counts disagree or are empty; see {log_path} and {trace}")
+    print(f"Verified WAN capture: {count[1]} TCP packets, {trace.stat().st_size} bytes, {trace}")
+
+
+def run_swarm(run_dir, size, timeout, peers, tracker_ip, config, prefix, *, capture=False):
     """Launch independent processes. prefix(name) selects the host namespace."""
     seed = run_dir / "seed" / "payload.bin"
     metadata = run_dir / "metadata.json"
@@ -116,6 +152,9 @@ def run_swarm(run_dir, size, timeout, peers, tracker_ip, config, prefix):
     log = RunLog(run_dir)
     processes = {}
     with ExitStack() as cleanup:
+        monitors = {}
+        if capture:
+            monitors["capture"] = cleanup.enter_context(capture_wan(run_dir, config["peer_port_tcp"]))
         tracker = launch(run_dir, "tracker", prefix("tracker") + python + [
             "tracker.server", "--host", tracker_ip, "--port", str(config["tracker_port"])], env)
         cleanup.callback(stop, {"tracker": tracker})
@@ -127,7 +166,7 @@ def run_swarm(run_dir, size, timeout, peers, tracker_ip, config, prefix):
                     "--run-dir", str(run_dir), "--total-timeout", str(timeout)]
             processes[name] = launch(run_dir, name, prefix(name) + python + args, env)
         leechers = {ip for name, ip in peers.items() if name != "seed"}
-        wait_for_downloads(log, {"tracker": tracker, **processes}, leechers, timeout)
+        wait_for_downloads(log, {**monitors, "tracker": tracker, **processes}, leechers, timeout)
     for name, proc in processes.items():
         if proc.returncode != 0:
             raise RuntimeError(f"{name} shutdown exited with {proc.returncode}; see {name}.log")
@@ -141,6 +180,7 @@ def main():
     parser.add_argument("--size", type=parse_size, default=8 * 1024 * 1024,
                         help="payload size, e.g. 8MiB (default) or 64MiB")
     parser.add_argument("--timeout", type=int, default=900, help="transfer deadline in seconds")
+    parser.add_argument("--no-capture", action="store_true", help="run the TCP swarm without a WAN pcap")
     args = parser.parse_args()
     if args.size < 1 or args.timeout < 1:
         parser.error("size and timeout must be positive")
@@ -168,14 +208,16 @@ def main():
                                cwd=ROOT, check=True)
                 subprocess.run(["bash", "infra/netem.sh", "apply"], cwd=ROOT, check=True)
                 run_swarm(run_dir, args.size, args.timeout, lab_peers(), "10.0.3.10", config,
-                          lambda name: ["bash", "infra/run_in_ns.sh", name])
+                          lambda name: ["bash", "infra/run_in_ns.sh", name], capture=not args.no_capture)
             finally:
                 subprocess.run(["bash", "infra/teardown.sh"], cwd=ROOT, check=True)
     except (OSError, RuntimeError, ValueError, subprocess.SubprocessError) as exc:
-        parser.exit(1, f"M2.2 failed: {exc}\n")
+        parser.exit(1, f"Routed TCP run failed: {exc}\n")
     except KeyboardInterrupt:
         parser.exit(130, "Run interrupted\n")
     print("PASS: M2.2 routed TCP swarm, 10/10 downloads verified, topology removed")
+    if not args.no_capture:
+        print("PASS: M2.3 routed swarm pcap saved and verified")
 
 
 if __name__ == "__main__":

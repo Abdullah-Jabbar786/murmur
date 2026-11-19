@@ -31,7 +31,29 @@ leecher upload bytes and a final PASS after topology teardown. The runner
 also stops its processes and tears down the lab on transfer failure or Ctrl+C.
 The run directory is kept for inspection. If a child exits early, read its
 named log in that directory. Budget about 704 MiB for the eleven payloads of
-a 64 MiB run, plus logs. Each retry creates a fresh directory.
+a 64 MiB run, plus logs and the WAN trace. Each retry creates a fresh directory.
+
+## M2.3 WAN packet capture
+
+Install Ubuntu's `tcpdump` package if needed. The normal runner command now
+captures TCP swarm traffic traversing the WAN. For the first capture test use
+`sudo .venv/bin/python experiments/run.py --size 8MiB` from the repo root.
+The runner starts `infra/capture.sh` on R1's `wan0`, waits for tcpdump to
+report that it is listening, then starts the tracker and peers. Its filter
+selects the swarm TCP port between LAN B and either LAN A or the origin LAN.
+Each record keeps the first 128 bytes of the frame and its original wire length.
+Use the trace to inspect IPs, TCP ports, flags and sequence numbers.
+
+After peer shutdown the runner interrupts tcpdump, waits for it to flush and
+reads the entire saved pcap. The count of swarm TCP packets must be positive
+and match tcpdump's live capture count. `Verified WAN capture` prints the
+count, file size and path to `r1-wan0.pcap`. The sibling `capture.log`
+includes tcpdump's kernel drop counter. The final M2.3 PASS follows teardown.
+To repeat the earlier transfer-only check, pass `--no-capture`.
+
+For a manual capture in an already running topology, use
+`sudo bash infra/capture.sh 6881 > "$HOME/r1-wan0.pcap"` from a second terminal.
+Press Ctrl+C there to stop and flush it before tearing down the topology.
 
 ## Offline analysis
 
