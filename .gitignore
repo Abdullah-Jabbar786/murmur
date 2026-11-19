@@ -9,6 +9,7 @@ venv/
 *.log
 testdata/
 results/raw_tmp/
+/results/m22/
 results/**/*.jsonl
 results/**/*.pcap
 .pytest_cache/

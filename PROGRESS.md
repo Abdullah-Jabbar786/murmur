@@ -233,6 +233,13 @@ review transfers each produced two complete, SHA-256-verified downloads.
 The focused dashboard and peer event tests passed (16 tests). Chrome rendered
 the recorded MurmurTP output. Routed dashboard integration and Gate S2 remain open.
 
+M2.1 merged in PR #37 (`57068b5`). M2.2 adds the
+[routed TCP runner](experiments/README.md#m22-routed-tcp-swarm) and tracker
+discovery for swarm peers. On Windows, one seed and ten leechers used real
+localhost TCP and an HTTP tracker. All ten downloaded files matched the seed.
+The Windows regression suite passed 619 tests with three platform skips.
+The Ubuntu namespace run, its dashboard evidence and Gate S2 remain pending.
+
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
 | 1 | | | |
