@@ -22,6 +22,7 @@ button,label{cursor:pointer}
 .pill.l{background:color-mix(in srgb,var(--l) 22%,transparent);color:#FF8FA8}
 .seg{position:relative;display:inline-grid;grid-template-columns:1fr 1fr;padding:3px;border-radius:16px;background:rgba(0,0,0,.35)}
 .seg input{position:absolute;opacity:0;pointer-events:none}
+.seg[hidden]{display:none}
 .seg label{position:relative;z-index:1;display:grid;place-items:center;min-width:100px;min-height:44px;font-size:15px;font-weight:600;color:rgba(235,235,245,.62);transition:color .25s,transform .35s var(--spring)}
 .seg label:active{transform:scale(.95)}
 .seg input:checked+label{color:#fff}
@@ -52,6 +53,11 @@ select{max-width:100%;background:#212126;border:1px solid #46464d;padding:5px 9p
 #run{background:#30d158;color:#07180c;border:0;border-radius:999px;padding:7px 15px;font-weight:650}
 button:disabled{opacity:.55;cursor:default}
 #chart{width:100%;display:block}
+.replay:not([hidden]){display:flex;align-items:center;flex-wrap:wrap;gap:12px;padding:12px 18px;border:1px solid #343439;border-radius:18px;background:#171719}
+.replay label{font-weight:600}.replay input{flex:1 1 180px;accent-color:var(--g);cursor:pointer}
+.replay button{background:#30d158;color:#07180c;border:0;border-radius:999px;padding:6px 15px;min-width:76px;font-weight:650}
+.replay output{font:13px 'JetBrains Mono',monospace;color:#d1d1d6}
+#series .legend{padding-right:10px}
 .pm i.missing{background:#27272c}.pm i.selected{background:#eee}.pm i.hash-failed{background:var(--l)}
 .table-scroll{overflow:auto}table{border-collapse:collapse;width:100%;text-align:left;font-size:14px}
 td,th{padding:12px 6px;border-bottom:1px solid #28282c}th{color:var(--t2);font-weight:500}

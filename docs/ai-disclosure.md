@@ -1,5 +1,11 @@
 # AI-use disclosure
 
+M3.1. Codex implemented replay using the dashboard's existing event processing
+and added the transport overlay. Tests cover paginated snapshots, rewinding
+and playback controls. Majid supplied screenshots of the routed replay.
+Codex checked its event logs, clarified the replay and transport controls,
+and tested a larger Windows UDP receive buffer after a localhost timeout.
+
 I3 routed integration. Codex connected the existing MurmurTP transport to
 the Ubuntu runner, tracker discovery and WAN capture. The local integration
 tests use real sockets and an HTTP tracker. Majid ran both routed cases on
