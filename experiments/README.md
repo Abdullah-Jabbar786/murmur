@@ -84,6 +84,23 @@ records both routers' queue settings and packet drop counters before teardown.
 Keep the terminal output and run directory for the I3 evidence. The timeout
 is an upper bound on the transfer, in seconds.
 
+### Ubuntu I3 acceptance
+
+On branch revision `3b1ce46`, one seed served ten MurmurTP leechers across
+two LANs. Both runs used 10 ms delay per WAN direction and 10 Mbit/s limits
+on the WAN and seed uplink. The runner verified every file and WAN capture
+and removed the topology after each run.
+
+| Run directory under `results/m22/` | File per leecher | Configured WAN loss per direction | Verified downloads | Captured UDP packets | Capture bytes | Leecher upload bytes |
+|---|---:|---:|---:|---:|---:|---:|
+| `20261120T112506Z-b93b2669` | 8 MiB | 0% | 10/10 | 110,281 | 11,324,764 | 68,698,112 |
+| `20261120T113231Z-2ba9a49b` | 64 MiB | 5% | 10/10 | 697,261 | 72,798,272 | 382,648,320 |
+
+Verified whole-file SHA-256 values from the runner:
+
+- 8 MiB: `0d7cf1d2830e2b4e5ee581fd1735241ca7ad06880a287d0c1d7190ca96f5184c`
+- 64 MiB: `45581d305941fbabc46eac1027f88e99fdc8dfd3de474343dc93a61766d2fd61`
+
 ## Offline analysis
 
 Offline analysis for experiments E1 to E5:

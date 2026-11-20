@@ -48,7 +48,7 @@ Client / Seed / Leecher
 | S0 | Sprint 0 | Repo setup, hygiene, contracts, one merged PR each | complete |
 | S1 | Sprint 1 | Topology, tracker, transport, codecs, loss shim | [Acceptance checks passed; evidence ready for review](captures/s1/README.md) |
 | S2 | Sprint 2 | TCP swarm with rarest-first and choking | [Technical checks passed on merged main at `ab7d63c`](captures/README.md#gate-s2-ci) |
-| S3 | Sprint 3 | MurmurTP swarm at 5% loss, one config flag | in progress: A3.2 transport/events/local swarm integration merged; routed acceptance pending |
+| S3 | Sprint 3 | MurmurTP swarm at 5% loss, one config flag | [Routed acceptance passed](experiments/README.md#ubuntu-i3-acceptance). Protocol spec review and five annotated exchanges remain open. |
 | S4 | Sprint 4 | E1–E5 experiments and graphs | local flowbench foundation implemented; routed experiments and analysis pending |
 | S5 | Sprint 5 | Report, demo, verification, polishing | planned |
 

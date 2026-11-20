@@ -270,8 +270,10 @@ port and verifies the observed transport on each peer. On Windows, ten
 tracker-discovered leechers verified their files over localhost MurmurTP,
 both with clean sockets and with 5% outgoing shim loss. The lossy test used
 a 131,109-byte payload and recorded retransmissions. The Windows regression
-suite passed 629 tests with four platform skips. The routed Ubuntu
-MurmurTP smoke test and the 64 MiB acceptance run at 5% loss are pending.
+suite passed 629 tests with four platform skips. On Ubuntu, all ten
+leechers verified the 8 MiB smoke transfer and the 64 MiB transfer with
+5% configured loss in each WAN direction. Both captures passed readback
+and both topologies were removed. [I3 run IDs, counts and hashes](experiments/README.md#ubuntu-i3-acceptance)
 
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
