@@ -2,7 +2,6 @@
 import argparse
 from contextlib import ExitStack, contextmanager
 from datetime import datetime, timezone
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -21,6 +20,7 @@ from core.config import load_config
 from core.transports import transport_port
 from dashboard.live import RunLog
 from experiments import series, sweep
+from experiments.payloads import sha256
 from peer.metadata import generate_dataset, parse_size
 
 
@@ -30,14 +30,6 @@ def lab_peers():
         for lan, subnet in (("a", 1), ("b", 2)):
             peers[f"{lan}{index}"] = f"10.0.{subnet}.{10 + index}"
     return peers
-
-
-def sha256(path):
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def launch(run_dir, name, args, env):
@@ -280,11 +272,15 @@ def main():
                        help="start or continue an E1/E2 matrix in DIR (default payload: 8MiB)")
     parser.add_argument("--cell", choices=list(sweep.CELLS),
                         help="run one sweep condition for a pilot")
+    parser.add_argument("--keep-seed-only", action="store_true",
+                        help="keep one payload copy per verified sweep trial")
     args = parser.parse_args()
     if (args.size is not None and args.size < 1) or (args.timeout is not None and args.timeout < 1):
         parser.error("size and timeout must be positive")
     if args.cell and not args.sweep:
         parser.error("--cell requires --sweep")
+    if args.keep_seed_only and not args.sweep:
+        parser.error("--keep-seed-only requires --sweep")
     if args.sweep and (args.transport or args.loss is not None or args.rtt_ms is not None):
         parser.error("--sweep defines transport, loss and RTT for each cell")
     if args.resume and (args.transport or args.loss is not None or args.rtt_ms is not None
@@ -314,7 +310,7 @@ def main():
                     parser.exit(1, f"Sweep plotting requires Matplotlib in the Ubuntu project venv: {exc}\n")
                 sweep.execute(args.sweep.resolve(), args.cell, args.size or 8 * 1024**2,
                               args.timeout or 7200, not args.no_capture, git_sha,
-                              routed_trial, lab_peers())
+                              routed_trial, lab_peers(), keep_seed_only=args.keep_seed_only)
                 return
             if args.resume:
                 run_dir = args.resume.resolve()

@@ -203,6 +203,31 @@ on the make command. When ready, run:
 sudo make experiments
 ```
 
+For a smaller disk, add `--keep-seed-only` to a new sweep. After each
+successful trial, the runner saves the verification checkpoint, rechecks
+the seed and remaining leecher files against its SHA-256, and removes the
+ten leecher payload copies. It records `retained_payload: seed/payload.bin`
+in the attempt checkpoint. Failed attempts retain their files for diagnosis.
+If cleanup is interrupted, repeat the same sweep command to finish it.
+Each passed trial keeps its logs, capture, metadata and seed. The 48 final
+trials retain 3 GiB of seed payloads, plus space for evidence, failed attempts,
+and the current transfer's downloads.
+
+Run this fresh pilot on Ubuntu to check measured usage:
+
+```bash
+sudo .venv/bin/python experiments/run.py --sweep results/m41/pilot-compact --cell E2-tcp-rtt100 --size 8MiB --keep-seed-only
+find results/m41/pilot-compact -name payload.bin -printf '%P %s bytes\n'
+du -sh results/m41/pilot-compact
+grep 'distribution_time_s' results/m41/pilot-compact/summary.csv
+df -h .
+```
+
+With four first-attempt passes, expect four seed paths of 8,388,608 bytes
+each and three recorded observations. Compare the directory size and free
+space before scheduling the larger matrix. The compact final command is
+`sudo make experiments KEEP_SEED_ONLY=1 SWEEP_DIR=results/m41/final-compact`.
+
 M4.1 covers six E1 cells (TCP/MurmurTP × 0/2/5% WAN loss per direction at
 20 ms RTT) and six E2 cells (TCP/MurmurTP × 20/100/200 ms configured RTT
 at 0% loss). Even the common baseline runs separately for each experiment.

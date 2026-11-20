@@ -13,4 +13,6 @@ For Sprint 3, follow the [routed MurmurTP commands](../experiments/README.md#rou
 in order, starting with the 8 MiB run before the 64 MiB test at 5% WAN loss.
 To verify interruption and restart, follow the [M3.3 resumable series](../experiments/README.md#m33-resumable-series).
 For E1/E2, run the [8 MiB pilot and final sweep](../experiments/README.md#m41-loss-and-rtt-sweeps).
+For a space-constrained VM, use the compact pilot command in that guide and
+measure its disk usage before choosing the final output location.
 The final routed E1–E5 measurements are pending.

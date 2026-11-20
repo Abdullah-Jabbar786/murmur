@@ -30,5 +30,6 @@ test-netem:
 # Run on Ubuntu with sudo. Reuse the directory to resume the same matrix.
 SWEEP_DIR ?= results/m41/final
 SIZE ?= 64MiB
+KEEP_SEED_ONLY ?= 0
 experiments:
-	.venv/bin/python experiments/run.py --sweep "$(SWEEP_DIR)" --size "$(SIZE)"
+	.venv/bin/python experiments/run.py --sweep "$(SWEEP_DIR)" --size "$(SIZE)" $(if $(filter 1,$(KEEP_SEED_ONLY)),--keep-seed-only)

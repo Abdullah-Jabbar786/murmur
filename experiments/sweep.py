@@ -9,6 +9,7 @@ from core.config import load_config
 from experiments import series
 from experiments.aggregate import INPUT_FIELDS, aggregate, write_summary
 from experiments.plot import plot_summary
+from experiments.payloads import keep_seed
 
 
 CELLS = {}
@@ -96,14 +97,17 @@ def report(directory, cells, peers, sweep_id):
     print(f"Saved {raw}, {summary} and plots in {directory}", flush=True)
 
 
-def execute(directory: Path, cell, size, timeout, capture, git_sha, run_trial, peers):
+def execute(directory: Path, cell, size, timeout, capture, git_sha, run_trial, peers,
+            *, keep_seed_only=False):
     cells = [cell] if cell else list(CELLS)
     settings = dict(version="M4.1", cells=cells, file_size=size, capture=capture, git_sha=git_sha)
+    settings["keep_seed_only"] = keep_seed_only
     if directory.exists():
         marker = directory / "run.json"
         if not marker.is_file():
             raise ValueError(f"expected a sweep checkpoint at {marker}; use a fresh directory")
         state = json.loads(marker.read_text(encoding="utf-8"))
+        state.setdefault("keep_seed_only", False)  # Older sweeps retained every payload.
         if any(state.get(k) != v for k, v in settings.items()) or not state.get("sweep_id"):
             raise ValueError("sweep settings or Git revision differ; use the original command or a new directory")
     else:
@@ -123,5 +127,16 @@ def execute(directory: Path, cell, size, timeout, capture, git_sha, run_trial, p
                 raise ValueError(f"unexpected cell configuration in {path}")
         else:
             checkpoint = series.create(path, config, timeout, capture, git_sha, series=True)
-        series.execute(path, checkpoint, git_sha, run_trial, timeout=timeout)
+        def compact_verified(cell_path, trial_name, attempts):
+            attempt = attempts[-1]
+            relative = f"{trial_name}/attempt-{len(attempts)}"
+            if attempt["directory"] != relative:
+                raise ValueError(f"unexpected verified attempt path in {cell_path}")
+            if attempt.get("retained_payload") != "seed/payload.bin":
+                keep_seed(cell_path / relative, peers, attempt["result"])
+                attempt["retained_payload"] = "seed/payload.bin"
+                series.save(cell_path, checkpoint)
+
+        series.execute(path, checkpoint, git_sha, run_trial, timeout=timeout,
+                       after_pass=compact_verified if keep_seed_only else None)
     report(directory, cells, peers, state["sweep_id"])

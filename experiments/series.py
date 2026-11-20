@@ -47,12 +47,14 @@ def load(directory):
     return state
 
 
-def execute(directory, state, git_sha, run_trial, *, timeout=None):
+def execute(directory, state, git_sha, run_trial, *, timeout=None, after_pass=None):
     """Checkpoint after verification and teardown. Retry in a fresh directory."""
     deadline = state["timeout"] if timeout is None else timeout
     for trial in state["trials"]:
         name, attempts = trial["name"], trial["attempts"]
         if attempts and attempts[-1]["status"] == "passed":
+            if after_pass:
+                after_pass(directory, name, attempts)
             print(f"Skipping verified {name}", flush=True)
             continue
         if attempts and attempts[-1]["status"] == "running":
@@ -87,3 +89,5 @@ def execute(directory, state, git_sha, run_trial, *, timeout=None):
         state["status"] = "complete" if name == state["trials"][-1]["name"] else "running"
         save(directory, state)
         print(f"Checkpointed {name}", flush=True)
+        if after_pass:
+            after_pass(directory, name, attempts)

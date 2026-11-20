@@ -307,6 +307,10 @@ goodputs, 676.91 s distribution time and 15,183 total retransmissions.
 The [8 MiB Ubuntu E2 TCP pilot](experiments/README.md#ubuntu-e2-pilot-result)
 passed at 100 ms configured RTT. Mean distribution time was 30.549 s across
 three recorded trials. The 64 MiB E1/E2 matrix and its analysis remain pending.
+The opt-in compact sweep retains the verified seed after each successful trial.
+All 56 focused Windows sweep, series, capture and analysis checks passed,
+including interrupted cleanup and report generation from compact trials.
+The compact Ubuntu pilot and its disk measurements are pending.
 
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
