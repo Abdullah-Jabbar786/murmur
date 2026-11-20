@@ -1,5 +1,10 @@
 # AI-use disclosure
 
+M3.2. Codex selected 15 frames from the routed Ubuntu capture, added packet
+comments, and verified their bytes and timestamps against the original. Majid
+took the five Wireshark screenshots. Codex checked the packet fields visible
+in each screenshot and linked the images to their frame numbers.
+
 M3.1. Codex implemented replay using the dashboard's existing event processing
 and added the transport overlay. Tests cover paginated snapshots, rewinding
 and playback controls. Majid supplied screenshots of the routed replay.
