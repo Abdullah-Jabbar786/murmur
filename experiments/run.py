@@ -20,6 +20,7 @@ if __package__ in (None, ""):
 from core.config import load_config
 from core.transports import transport_port
 from dashboard.live import RunLog
+from experiments import series
 from peer.metadata import generate_dataset, parse_size
 
 
@@ -47,21 +48,25 @@ def launch(run_dir, name, args, env):
 
 def stop(processes, grace=15):
     # Interrupt every writer first so all peers can flush their final summaries.
-    for proc in processes.values():
-        if proc.poll() is None:
+    def signal_live(sig):
+        for proc in processes.values():
+            if proc.poll() is None:
+                try:
+                    os.killpg(proc.pid, sig)
+                except ProcessLookupError:
+                    pass
+
+    try:
+        signal_live(signal.SIGINT)
+        deadline = time.monotonic() + grace
+        for proc in processes.values():
             try:
-                os.killpg(proc.pid, signal.SIGINT)
-            except ProcessLookupError:
+                proc.wait(timeout=max(0, deadline - time.monotonic()))
+            except subprocess.TimeoutExpired:
                 pass
-    deadline = time.monotonic() + grace
-    for proc in processes.values():
-        try:
-            proc.wait(timeout=max(0, deadline - time.monotonic()))
-        except subprocess.TimeoutExpired:
-            try:
-                os.killpg(proc.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
+    finally:
+        signal_live(signal.SIGKILL)
+        for proc in processes.values():
             proc.wait()
 
 
@@ -133,7 +138,7 @@ def capture_wan(run_dir, port, protocol="tcp"):
     # A global header alone, a partial write or missing records cannot pass.
     with trace.open("rb") as saved:
         counted = subprocess.run(["tcpdump", "--count", "-nn", "-r", "-", f"{protocol} port {port}"],
-                                 stdin=saved, capture_output=True, text=True)
+                                 stdin=saved, capture_output=True, text=True, timeout=300)
     if counted.returncode:
         raise ValueError(f"unreadable capture {trace}: {counted.stderr.strip()}")
     count = re.fullmatch(r"(\d+) packets?", counted.stdout.strip())
@@ -178,21 +183,100 @@ def run_swarm(run_dir, size, timeout, peers, tracker_ip, config, prefix, *, capt
             raise RuntimeError(f"{name} shutdown exited with {proc.returncode}; see {name}.log")
     summaries = verify(run_dir, peers, size, expected_hash, log, config["transport"])
     print(f"Verified {len(leechers)} leecher files, {size} bytes each. SHA-256 {expected_hash}")
-    print(f"Leecher upload bytes: {sum(summaries[ip]['bytes_up'] for ip in leechers)}")
+    uploaded = sum(summaries[ip]["bytes_up"] for ip in leechers)
+    print(f"Leecher upload bytes: {uploaded}")
+    return dict(sha256=expected_hash, file_bytes=size, verified_leechers=len(leechers),
+                leecher_upload_bytes=uploaded)
+
+
+def lab_command(args, timeout, *, stdout=None):
+    # Shell helpers may themselves be waiting on flock or ip. Reap the whole
+    # command group before teardown or retry can acquire the same resources.
+    proc = subprocess.Popen(args, cwd=ROOT, stdout=stdout, start_new_session=True)
+    try:
+        code = proc.wait(timeout=timeout)
+    except BaseException:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        proc.wait()
+        raise
+    if code:
+        raise subprocess.CalledProcessError(code, args)
+
+
+def routed_trial(directory, config, timeout, capture):
+    size, loss = config["file_size"], config["wan_loss_pct"]
+    print(f"Swarm transport: {config['transport']}; WAN loss per direction: {loss}%", flush=True)
+    try:
+        lab_command(["bash", "infra/topology.sh", "--leechers-per-lan", "5"], 120)
+        lab_command(["bash", "infra/netem.sh", "apply", "--loss", str(loss)], 60)
+        result = run_swarm(directory, size, timeout, lab_peers(), "10.0.3.10", config,
+                           lambda name: ["bash", "infra/run_in_ns.sh", name], capture=capture)
+        if loss:
+            with (directory / "wan-qdisc.log").open("x", encoding="utf-8") as counters:
+                for router in ("r1", "r2"):
+                    print(router, file=counters, flush=True)
+                    lab_command(["bash", "infra/run_in_ns.sh", router, "tc", "-s", "qdisc",
+                                 "show", "dev", "wan0"], 30, stdout=counters)
+    finally:
+        lab_command(["bash", "infra/teardown.sh"], 120)
+    if config["transport"] == "tcp":
+        print("PASS: M2.2 routed TCP swarm, 10/10 downloads verified, topology removed")
+    else:
+        print(f"PASS: routed MurmurTP swarm, {size} bytes, {loss}% WAN loss, "
+              "10/10 downloads verified, topology removed")
+    if capture:
+        print("PASS: M2.3 routed swarm pcap saved and verified")
+    return result
+
+
+def supervise_linux_runner():
+    """Keep cleanup alive even when the CLI process itself receives SIGKILL."""
+    import ctypes
+
+    parent = os.getpid()
+    worker = os.fork()
+    if worker == 0:
+        os.setsid()
+        libc = ctypes.CDLL(None, use_errno=True)
+        if libc.prctl(1, signal.SIGTERM, 0, 0, 0) != 0:  # Linux PR_SET_PDEATHSIG
+            raise OSError(ctypes.get_errno(), "could not arm parent-death signal")
+        if os.getppid() != parent:  # Parent exited between fork and prctl.
+            raise KeyboardInterrupt
+        return
+    try:
+        _, status = os.waitpid(worker, 0)
+    except KeyboardInterrupt:
+        try:
+            os.kill(worker, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        os.waitpid(worker, 0)
+        raise
+    code = os.waitstatus_to_exitcode(status)
+    raise SystemExit(code if code >= 0 else 128 - code)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--transport", choices=("tcp", "murmurtp"), help="override config/default.json")
-    parser.add_argument("--loss", type=int, choices=range(101), metavar="0..100", default=0,
+    parser.add_argument("--loss", type=int, choices=range(101), metavar="0..100",
                         help="WAN loss percentage per direction (default: 0)")
-    parser.add_argument("--size", type=parse_size, default=8 * 1024 * 1024,
+    parser.add_argument("--size", type=parse_size,
                         help="payload size, e.g. 8MiB (default) or 64MiB")
-    parser.add_argument("--timeout", type=int, default=900, help="transfer deadline in seconds")
+    parser.add_argument("--timeout", type=int, help="transfer deadline per attempt (default: 900 seconds)")
     parser.add_argument("--no-capture", action="store_true", help="run without a WAN pcap")
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument("--series", type=Path, metavar="NEW_DIR",
+                       help="run one warm-up and three recorded trials in a new directory")
+    modes.add_argument("--resume", type=Path, metavar="DIR", help="resume from DIR/run.json")
     args = parser.parse_args()
-    if args.size < 1 or args.timeout < 1:
+    if (args.size is not None and args.size < 1) or (args.timeout is not None and args.timeout < 1):
         parser.error("size and timeout must be positive")
+    if args.resume and (args.transport or args.loss is not None or args.size is not None or args.no_capture):
+        parser.error("--resume restores the saved settings; only --timeout can be overridden")
     if sys.platform != "linux" or os.geteuid() != 0:
         parser.error("run on Ubuntu with sudo .venv/bin/python experiments/run.py")
     import fcntl
@@ -202,45 +286,35 @@ def main():
 
     signal.signal(signal.SIGTERM, interrupted)
     try:
+        supervise_linux_runner()
         with open("/run/lock/murmur-harness.lock", "a") as lock:
             try:
                 fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError:
                 parser.exit(1, "another Murmur harness run is active\n")
-            run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid4().hex[:8]
-            run_dir = ROOT / "results" / "m22" / run_id
-            run_dir.mkdir(parents=True)
+            git_sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                                              text=True, timeout=10).strip()
+            if args.resume:
+                run_dir = args.resume.resolve()
+                state = series.load(run_dir)
+            else:
+                run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid4().hex[:8]
+                run_dir = (args.series or ROOT / "results" / "m22" / run_id).resolve()
+                config = load_config(overrides={"mode": "swarm", "file_size": args.size or 8 * 1024**2,
+                                                "wan_loss_pct": args.loss or 0})
+                if args.transport:
+                    config["transport"] = args.transport
+                transport_port(config)
+                state = series.create(run_dir, config, args.timeout or 900, not args.no_capture,
+                                      git_sha, series=bool(args.series))
             print(f"Run directory: {run_dir}", flush=True)
-            config = load_config(overrides={"mode": "swarm", "file_size": args.size, "wan_loss_pct": args.loss})
-            if args.transport:
-                config["transport"] = args.transport
-            transport_port(config)  # Validate the selected protocol before building the lab.
-            print(f"Swarm transport: {config['transport']}; WAN loss per direction: {args.loss}%", flush=True)
-            try:
-                subprocess.run(["bash", "infra/topology.sh", "--leechers-per-lan", "5"],
-                               cwd=ROOT, check=True)
-                subprocess.run(["bash", "infra/netem.sh", "apply", "--loss", str(args.loss)], cwd=ROOT, check=True)
-                run_swarm(run_dir, args.size, args.timeout, lab_peers(), "10.0.3.10", config,
-                          lambda name: ["bash", "infra/run_in_ns.sh", name], capture=not args.no_capture)
-                if args.loss:
-                    with (run_dir / "wan-qdisc.log").open("x", encoding="utf-8") as counters:
-                        for router in ("r1", "r2"):
-                            print(router, file=counters, flush=True)
-                            subprocess.run(["bash", "infra/run_in_ns.sh", router, "tc", "-s", "qdisc",
-                                            "show", "dev", "wan0"], cwd=ROOT, stdout=counters, check=True)
-            finally:
-                subprocess.run(["bash", "infra/teardown.sh"], cwd=ROOT, check=True)
+            series.execute(run_dir, state, git_sha, routed_trial, timeout=args.timeout)
+            if state["series"]:
+                print("PASS: one warm-up and three verified recorded runs; see run.json")
     except (OSError, RuntimeError, ValueError, subprocess.SubprocessError) as exc:
         parser.exit(1, f"Routed swarm run failed: {exc}\n")
     except KeyboardInterrupt:
         parser.exit(130, "Run interrupted\n")
-    if config["transport"] == "tcp":
-        print("PASS: M2.2 routed TCP swarm, 10/10 downloads verified, topology removed")
-    else:
-        print(f"PASS: routed MurmurTP swarm, {args.size} bytes, {args.loss}% WAN loss, "
-              "10/10 downloads verified, topology removed")
-    if not args.no_capture:
-        print("PASS: M2.3 routed swarm pcap saved and verified")
 
 
 if __name__ == "__main__":

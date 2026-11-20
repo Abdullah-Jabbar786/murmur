@@ -29,7 +29,8 @@ def tcpdump(monkeypatch):
         if state.returncode is None:
             state.returncode = 0
 
-    def read(args, *, stdin, capture_output, text):
+    def read(args, *, stdin, capture_output, text, timeout):
+        assert timeout > 0
         assert state.stopped and stdin.name.endswith("r1-wan0.pcap")
         assert args[-1] == f"{state.protocol} port {state.port}"
         state.read = True
