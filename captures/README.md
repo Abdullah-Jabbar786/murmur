@@ -71,3 +71,32 @@ The push workflow for merged `main` commit `ab7d63c` completed successfully.
 On a fresh Ubuntu 24.04 runner, the workflow checked out the repository and
 ran the pytest suite under Python 3.11 with TShark required. It invokes
 the same suite as the Makefile's `test` target. [GitHub Actions run 44617294078](https://github.com/Abdullah-Jabbar786/murmur/actions/runs/44617294078)
+
+## Gate S3 MurmurTP exchanges
+
+The [annotated sample](s3-murmurtp-wan.pcapng) contains 15 frames from R1's
+WAN interface during Ubuntu run `20261120T113231Z-2ba9a49b`. All ten peers
+verified the 64 MiB file with 5% configured WAN loss per direction. The source
+capture contains 697,261 packets. Each sample frame has a packet comment giving
+its original frame number and explaining the field to inspect.
+
+| Wireshark screenshot | Sample frames | Original frames | Observation |
+|---|---|---|---|
+| [Connection setup](s3-handshake.PNG) | 1–3 | 1, 6, 9 | The leecher sends SYN, the seed assigns connection ID 1 in SYN+ACK, and the leecher returns ACK. |
+| [Data and acknowledgment](s3-data-ack.PNG) | 4–5 | 23, 29 | The leecher sends 37 bytes in sequence 1. The seed carries ACK 2 on its return DATA packet. |
+| [Selective acknowledgment and recovery](s3-sack-recovery.PNG) | 6–9 | 12482, 12518, 12526, 12560 | The seed sends sequence 890. The receiver still expects 890 and reports 891–893 with SACK bitmap 0x7. Sequence 890 appears again and the cumulative ACK reaches 894. |
+| [Receive-window update](s3-window.PNG) | 10–11 | 54206, 55632 | The receiver first advertises zero available slots, then 27. Both ACKs still request sequence 232. |
+| [Connection close](s3-close.PNG) | 12–15 | 105415, 105436, 105692, 105713 | FIN 85 and FIN 381 travel in opposite directions. Each has a matching ACK, 86 and 382 respectively. |
+
+Open the sample from the repository root in Windows PowerShell:
+
+```powershell
+& "C:\Program Files\Wireshark\Wireshark.exe" -n -X lua_script:captures/murmurtp.lua -r captures/s3-murmurtp-wan.pcapng
+```
+
+For the recovery view, enter `frame.number >= 6 && frame.number <= 9` in
+the display filter, select frame 7, and expand **Murmur Transport Protocol**
+and its SACK bitmap. Use the sample frame ranges above for the other views.
+The 128-byte capture limit preserves the transport header. Checksumming the
+full 1,200-byte DATA payload in frames 6 and 8 would require more captured
+bytes. The repeated sequence and advancing ACK are visible in the headers.

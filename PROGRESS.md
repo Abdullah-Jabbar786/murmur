@@ -285,6 +285,11 @@ Windows. Increasing the shared UDP socket receive buffer from 64 KiB to
 1 MiB let the same test finish in 12 seconds with its original deadline.
 The full Windows suite then passed 631 tests with five skips in 211.92 seconds.
 
+M3.1 merged in PR #42 (`0412c71`). M3.2 documents five exchanges from
+the routed 5% loss run. Each Wireshark screenshot matches its annotated
+frames in the [capture guide](captures/README.md#gate-s3-murmurtp-exchanges).
+The protocol specification review remains open for Gate S3.
+
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
 | 1 | | | |
