@@ -10,6 +10,7 @@ venv/
 testdata/
 results/raw_tmp/
 /results/m22/
+/results/m41/
 results/**/*.jsonl
 results/**/*.pcap
 .pytest_cache/

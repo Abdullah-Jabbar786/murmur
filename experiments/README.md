@@ -168,4 +168,54 @@ Offline analysis for experiments E1 to E5:
 - `mock_results.csv`: synthetic acceptance data, never measured network results.
 
 See [results-analysis.md](../docs/results-analysis.md) for commands, schema and
-tests. Raw-log export and the E1–E5 experiment series are pending.
+tests. M4.1 uses the same CSV schema for measured E1/E2 data.
+
+## M4.1 loss and RTT sweeps
+
+On Ubuntu, from the repository root, run one 8 MiB pilot cell:
+
+```bash
+sudo .venv/bin/python experiments/run.py --sweep results/m41/pilot --cell E2-tcp-rtt100 --size 8MiB
+```
+
+Expect 50 ms delay per WAN direction, 0% configured loss and ten verified
+downloads in each of four transfers. The pilot ends by writing
+`results/m41/pilot/metrics.csv`, `summary.csv` and PNGs. Verify the three
+recorded observations in the distribution-time row:
+
+```bash
+grep 'distribution_time_s' results/m41/pilot/summary.csv
+```
+
+Repeat the same command after an interruption. The outer checkpoint pins
+the cell selection, file size, capture setting and Git revision. Each cell
+retains its own M3.3 checkpoint with attempts, failures, retries and file
+hash verification. Completed cells can regenerate reports from their logs.
+Use a separate directory for a different profile or revision.
+
+For the final matrix check free space with `df -h .` first. The 12 cells
+retain **33 GiB of payload files alone** (48 transfers × 11 files × 64 MiB).
+Allow additional space for WAN captures, logs and any retries. To use a
+larger Linux filesystem set `SWEEP_DIR=/absolute/path/to/a/new/directory`
+on the make command. When ready, run:
+
+```bash
+sudo make experiments
+```
+
+M4.1 covers six E1 cells (TCP/MurmurTP × 0/2/5% WAN loss per direction at
+20 ms RTT) and six E2 cells (TCP/MurmurTP × 20/100/200 ms configured RTT
+at 0% loss). Even the common baseline runs separately for each experiment.
+The default output is `results/m41/final/`. The dataset generator uses seed
+42 for identical files and the peer scheduler uses seed 0 across variants.
+Kernel loss and process scheduling can vary between repetitions.
+
+Each passed attempt contributes rows from the seed and leecher JSONL logs.
+Warm-ups are marked in the raw CSV and excluded from statistics. Distribution
+time is the last leecher's completion timestamp since the common start.
+Peer goodput divides verified file bits by that peer's completion time.
+Swarm goodput divides all ten files' bits by distribution time. Run-level
+retransmissions sum the eleven final summaries and are blank if any count
+is unavailable. The final summary includes mean, sample SD, min, max and
+observation counts. E1 plots distribution time, swarm goodput and available
+retransmissions. E2 plots distribution time and goodput for each leecher.

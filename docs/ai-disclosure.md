@@ -1,5 +1,10 @@
 # AI-use disclosure
 
+M4.1. Codex added the E1/E2 sweep and measured CSV/plot export, reusing the
+resumable series runner. Windows tests exercised the matrix, WAN delay
+arguments, retry selection and statistics. Codex also checked metric
+extraction against Majid's existing routed 5% loss recording.
+
 M3.3. Codex implemented experiment checkpointing and restart, including
 separate warm-up and measurement directories. Windows tests exercised a
 forced process exit, checkpoint reload, and retry after timeout or failed

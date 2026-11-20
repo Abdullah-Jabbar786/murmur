@@ -20,7 +20,7 @@ if __package__ in (None, ""):
 from core.config import load_config
 from core.transports import transport_port
 from dashboard.live import RunLog
-from experiments import series
+from experiments import series, sweep
 from peer.metadata import generate_dataset, parse_size
 
 
@@ -208,10 +208,12 @@ def lab_command(args, timeout, *, stdout=None):
 
 def routed_trial(directory, config, timeout, capture):
     size, loss = config["file_size"], config["wan_loss_pct"]
+    rtt = config.get("wan_rtt_ms", 20)
     print(f"Swarm transport: {config['transport']}; WAN loss per direction: {loss}%", flush=True)
     try:
         lab_command(["bash", "infra/topology.sh", "--leechers-per-lan", "5"], 120)
-        lab_command(["bash", "infra/netem.sh", "apply", "--loss", str(loss)], 60)
+        lab_command(["bash", "infra/netem.sh", "apply", "--loss", str(loss),
+                     "--delay", f"{rtt / 2:g}"], 60)
         result = run_swarm(directory, size, timeout, lab_peers(), "10.0.3.10", config,
                            lambda name: ["bash", "infra/run_in_ns.sh", name], capture=capture)
         if loss:
@@ -264,18 +266,29 @@ def main():
     parser.add_argument("--transport", choices=("tcp", "murmurtp"), help="override config/default.json")
     parser.add_argument("--loss", type=int, choices=range(101), metavar="0..100",
                         help="WAN loss percentage per direction (default: 0)")
+    parser.add_argument("--rtt-ms", type=int, choices=(20, 100, 200),
+                        help="configured WAN round-trip delay (default: 20 ms)")
     parser.add_argument("--size", type=parse_size,
                         help="payload size, e.g. 8MiB (default) or 64MiB")
-    parser.add_argument("--timeout", type=int, help="transfer deadline per attempt (default: 900 seconds)")
+    parser.add_argument("--timeout", type=int, help="transfer deadline in seconds (900 by default, 7200 for sweeps)")
     parser.add_argument("--no-capture", action="store_true", help="run without a WAN pcap")
     modes = parser.add_mutually_exclusive_group()
     modes.add_argument("--series", type=Path, metavar="NEW_DIR",
                        help="run one warm-up and three recorded trials in a new directory")
     modes.add_argument("--resume", type=Path, metavar="DIR", help="resume from DIR/run.json")
+    modes.add_argument("--sweep", type=Path, metavar="DIR",
+                       help="start or continue an E1/E2 matrix in DIR (default payload: 8MiB)")
+    parser.add_argument("--cell", choices=list(sweep.CELLS),
+                        help="run one sweep condition for a pilot")
     args = parser.parse_args()
     if (args.size is not None and args.size < 1) or (args.timeout is not None and args.timeout < 1):
         parser.error("size and timeout must be positive")
-    if args.resume and (args.transport or args.loss is not None or args.size is not None or args.no_capture):
+    if args.cell and not args.sweep:
+        parser.error("--cell requires --sweep")
+    if args.sweep and (args.transport or args.loss is not None or args.rtt_ms is not None):
+        parser.error("--sweep defines transport, loss and RTT for each cell")
+    if args.resume and (args.transport or args.loss is not None or args.rtt_ms is not None
+                        or args.size is not None or args.no_capture):
         parser.error("--resume restores the saved settings; only --timeout can be overridden")
     if sys.platform != "linux" or os.geteuid() != 0:
         parser.error("run on Ubuntu with sudo .venv/bin/python experiments/run.py")
@@ -294,6 +307,15 @@ def main():
                 parser.exit(1, "another Murmur harness run is active\n")
             git_sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT,
                                               text=True, timeout=10).strip()
+            if args.sweep:
+                try:
+                    import matplotlib.figure  # Check reporting dependency before launching long transfers.
+                except ImportError as exc:
+                    parser.exit(1, f"Sweep plotting requires Matplotlib in the Ubuntu project venv: {exc}\n")
+                sweep.execute(args.sweep.resolve(), args.cell, args.size or 8 * 1024**2,
+                              args.timeout or 7200, not args.no_capture, git_sha,
+                              routed_trial, lab_peers())
+                return
             if args.resume:
                 run_dir = args.resume.resolve()
                 state = series.load(run_dir)
@@ -301,7 +323,8 @@ def main():
                 run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid4().hex[:8]
                 run_dir = (args.series or ROOT / "results" / "m22" / run_id).resolve()
                 config = load_config(overrides={"mode": "swarm", "file_size": args.size or 8 * 1024**2,
-                                                "wan_loss_pct": args.loss or 0})
+                                                "wan_loss_pct": args.loss or 0,
+                                                "wan_rtt_ms": args.rtt_ms or 20})
                 if args.transport:
                     config["transport"] = args.transport
                 transport_port(config)

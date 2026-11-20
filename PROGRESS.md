@@ -300,6 +300,12 @@ check passed. The runner skipped the verified warm-up, retried the first
 measurement in attempt 2 and verified ten downloads in each of three
 measurements. [Ubuntu resume evidence](experiments/README.md#ubuntu-interruption-and-resume-check)
 
+M3.3 merged in PR #44 (`be0bd8b`). M4.1 adds E1/E2 sweep and report
+generation. The 51 focused Windows sweep, series, capture and analysis tests
+passed. On the prior Ubuntu MurmurTP 5% loss logs, the exporter read ten peer
+goodputs, 676.91 s distribution time and 15,183 total retransmissions.
+The new Ubuntu pilot, final matrix measurements and interpretation are pending.
+
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
 | 1 | | | |
