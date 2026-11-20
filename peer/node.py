@@ -302,7 +302,8 @@ async def _run_cli(args) -> None:
                     from peer.discovery import serve_discovered
                     from tracker.client import TrackerClient
 
-                    await serve_discovered(node, TrackerClient(tracker_url), args.total_timeout, event_log)
+                    await serve_discovered(node, TrackerClient(tracker_url), args.total_timeout, event_log,
+                                           single_session=config.get("transport") == "murmurtp")
                     return
                 for address in peers:
                     await node.connect(address)

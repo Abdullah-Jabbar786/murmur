@@ -55,6 +55,52 @@ For a manual capture in an already running topology, use
 `sudo bash infra/capture.sh 6881 > "$HOME/r1-wan0.pcap"` from a second terminal.
 Press Ctrl+C there to stop and flush it before tearing down the topology.
 
+## Routed MurmurTP swarm (I3)
+
+Use the same Ubuntu VM, venv, tracker and topology as the routed TCP test.
+First verify discovery, UDP capture and file integrity with a small transfer:
+
+```bash
+sudo .venv/bin/python experiments/run.py --transport murmurtp --loss 0 --size 8MiB
+```
+
+After all ten files verify and teardown succeeds, run the acceptance case:
+
+```bash
+sudo .venv/bin/python experiments/run.py --transport murmurtp --loss 5 --size 64MiB --timeout 7200
+```
+
+`--transport` overrides the transport in `config/default.json` for this
+invocation. The tracker continues to use HTTP. Each pair of MurmurTP peers
+uses the same endpoint ordering to choose which peer opens its UDP session.
+`--loss` configures netem on each WAN direction. Seed and same-LAN traffic
+that bypasses the WAN does not encounter that loss.
+
+Each invocation prints its own run directory and saves its settings in
+`config.json`. The runner checks transport events for every peer, all ten
+file hashes and the closed capture on the configured swarm port (UDP/6882 by
+default for MurmurTP). After a successful lossy transfer, `wan-qdisc.log`
+records both routers' queue settings and packet drop counters before teardown.
+Keep the terminal output and run directory for the I3 evidence. The timeout
+is an upper bound on the transfer, in seconds.
+
+### Ubuntu I3 acceptance
+
+On branch revision `3b1ce46`, one seed served ten MurmurTP leechers across
+two LANs. Both runs used 10 ms delay per WAN direction and 10 Mbit/s limits
+on the WAN and seed uplink. The runner verified every file and WAN capture
+and removed the topology after each run.
+
+| Run directory under `results/m22/` | File per leecher | Configured WAN loss per direction | Verified downloads | Captured UDP packets | Capture bytes | Leecher upload bytes |
+|---|---:|---:|---:|---:|---:|---:|
+| `20261120T112506Z-b93b2669` | 8 MiB | 0% | 10/10 | 110,281 | 11,324,764 | 68,698,112 |
+| `20261120T113231Z-2ba9a49b` | 64 MiB | 5% | 10/10 | 697,261 | 72,798,272 | 382,648,320 |
+
+Verified whole-file SHA-256 values from the runner:
+
+- 8 MiB: `0d7cf1d2830e2b4e5ee581fd1735241ca7ad06880a287d0c1d7190ca96f5184c`
+- 64 MiB: `45581d305941fbabc46eac1027f88e99fdc8dfd3de474343dc93a61766d2fd61`
+
 ## Offline analysis
 
 Offline analysis for experiments E1 to E5:

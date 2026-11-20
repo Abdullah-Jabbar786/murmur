@@ -1,5 +1,11 @@
 # AI-use disclosure
 
+I3 routed integration. Codex connected the existing MurmurTP transport to
+the Ubuntu runner, tracker discovery and WAN capture. The local integration
+tests use real sockets and an HTTP tracker. Majid ran both routed cases on
+Ubuntu. Codex transcribed the configured loss, run IDs, packet counts, upload
+totals, file hashes and teardown results from the supplied terminal output.
+
 Gate S2 dashboard review. Majid opened the saved 64 MiB run in Ubuntu and
 supplied the screenshot. Codex checked the displayed completion and piece
 counts and saved the original image with the run ID in the evidence guide.

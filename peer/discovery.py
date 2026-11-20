@@ -6,12 +6,13 @@ from tracker.client import TrackerError
 from tracker.protocol import Peer
 
 
-async def serve_discovered(node, client, timeout, event_log=None):
+async def serve_discovered(node, client, timeout, event_log=None, *, single_session=False):
     peer = Peer(node.peer_id, *node.address)
     completion = asyncio.create_task(node.wait_complete(timeout))
     event = "started"
     announced_complete = node.store.complete
     request = None
+    dialed = set()
     try:
         while True:
             if completion.done():
@@ -31,8 +32,15 @@ async def serve_discovered(node, client, timeout, event_log=None):
             for remote in result.peers:
                 if remote.peer_id == peer.peer_id or remote.peer_id in node.peer_ids:
                     continue
+                address = (remote.ip, remote.port)
+                if single_session:
+                    # MurmurTP v1 supports one session per remote endpoint.
+                    # Both nodes use the same endpoint ordering to elect one dialer.
+                    if node.address >= address or address in dialed:
+                        continue
+                    dialed.add(address)
                 try:
-                    await node.connect((remote.ip, remote.port))
+                    await node.connect(address)
                 except (OSError, ValueError, EOFError, asyncio.TimeoutError) as exc:
                     print(f"Peer {remote.ip}:{remote.port}: {exc}", file=sys.stderr, flush=True)
             if announced_complete:
