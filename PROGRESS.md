@@ -264,6 +264,15 @@ by a choke of the same peer. Majid confirmed the fresh-checkout GitHub
 Actions run succeeded for merged main at `ab7d63c`. All technical Gate S2
 checks passed. [Gate S2 evidence and CI run](captures/README.md#gate-s2-ci)
 
+Gate S2 evidence merged in PR #40 (`5748368`). The I3 runner now selects TCP
+or MurmurTP, configures per-direction WAN loss, captures the selected swarm
+port and verifies the observed transport on each peer. On Windows, ten
+tracker-discovered leechers verified their files over localhost MurmurTP,
+both with clean sockets and with 5% outgoing shim loss. The lossy test used
+a 131,109-byte payload and recorded retransmissions. The Windows regression
+suite passed 629 tests with four platform skips. The routed Ubuntu
+MurmurTP smoke test and the 64 MiB acceptance run at 5% loss are pending.
+
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
 | 1 | | | |

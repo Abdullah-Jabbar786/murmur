@@ -10,11 +10,11 @@ from experiments import run
 @pytest.fixture
 def tcpdump(monkeypatch):
     state = SimpleNamespace(ready=True, returncode=None, saved="2 packets", read_error="",
-                            stopped=False, read=False)
+                            stopped=False, read=False, protocol="tcp", port=6881)
     state.poll = lambda: state.returncode
 
     def launch(args, *, cwd, stdout, stderr, start_new_session):
-        assert args == ["bash", "infra/capture.sh", "6881"]
+        assert args == ["bash", "infra/capture.sh", str(state.port), state.protocol]
         assert start_new_session
         if state.ready:
             stderr.write(b"tcpdump: listening on wan0, link-type EN10MB\n")
@@ -31,7 +31,7 @@ def tcpdump(monkeypatch):
 
     def read(args, *, stdin, capture_output, text):
         assert state.stopped and stdin.name.endswith("r1-wan0.pcap")
-        assert args[-1] == "tcp port 6881"
+        assert args[-1] == f"{state.protocol} port {state.port}"
         state.read = True
         return SimpleNamespace(returncode=int(bool(state.read_error)),
                                stdout=state.saved, stderr=state.read_error)
@@ -61,6 +61,13 @@ def test_capture_startup_failure_prevents_workload(tmp_path, tcpdump):
         with run.capture_wan(tmp_path, 6881):
             pytest.fail("workload started without capture")
     assert tcpdump.stopped and not tcpdump.read
+
+
+def test_murmurtp_uses_udp_for_capture_and_readback(tmp_path, tcpdump):
+    tcpdump.protocol, tcpdump.port = "udp", 6882
+    with run.capture_wan(tmp_path, 6882, "udp"):
+        pass
+    assert tcpdump.read
 
 
 def test_workload_interrupt_reaps_capture(tmp_path, tcpdump):

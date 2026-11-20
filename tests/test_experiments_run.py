@@ -1,6 +1,7 @@
 """M2.2 runner and tracker discovery checks on local TCP sockets."""
 import argparse
 import asyncio
+import json
 import socket
 import sys
 import threading
@@ -77,21 +78,30 @@ async def test_discovery_refresh_recovers_after_tracker_error():
     assert calls == ["started", "started", "", "stopped"]
 
 
-async def test_ten_tcp_leechers_discover_and_verify(tmp_path):
+@pytest.mark.parametrize("transport,loss", [("tcp", 0), ("murmurtp", 0), ("murmurtp", 0.05)])
+async def test_ten_leechers_discover_and_verify(tmp_path, transport, loss, monkeypatch):
+    # Exercise several tracker refreshes during a short local transfer.
+    monkeypatch.setattr("tracker.client.TrackerClient.announce_interval", 1)
+    config = tmp_path / "config.json"
+    settings = load_config(overrides={"transport": transport})
+    if loss:
+        settings.update(loss_shim={"loss": loss}, murmurtp={"initial_rto": .1, "min_rto": .04,
+                        "max_rto": .5}, piece_size=32 * 1024)
+    config.write_text(json.dumps(settings), encoding="utf-8")
     app = create_app()
     server = make_server("127.0.0.1", 0, app, threaded=True)
     worker = threading.Thread(target=server.serve_forever)
     worker.start()
     peers = {name: f"127.0.0.{i}" for i, name in enumerate(run.lab_peers(), 1)}
-    size = 1024 * 1024 + 37
+    size = 4 * settings["piece_size"] + 37
     metadata = tmp_path / "metadata.json"
     seed = tmp_path / "seed" / "payload.bin"
     tasks = []
     log = RunLog(tmp_path)
     try:
-        generate_dataset(seed, metadata, size=size)
+        generate_dataset(seed, metadata, size=size, piece_length=settings["piece_size"])
         for name, ip in peers.items():
-            args = argparse.Namespace(command="swarm", metadata=metadata, config=None,
+            args = argparse.Namespace(command="swarm", metadata=metadata, config=config,
                                       distribution_mode="swarm", peer=[], origin_seed=None,
                                       mode="seed" if name == "seed" else "create",
                                       tracker_url=f"http://127.0.0.1:{server.server_port}/announce",
@@ -118,14 +128,16 @@ async def test_ten_tcp_leechers_discover_and_verify(tmp_path):
         server.server_close()
         worker.join()
     expected_hash = run.sha256(seed)
-    summaries = run.verify(tmp_path, peers, size, expected_hash, log)
+    summaries = run.verify(tmp_path, peers, size, expected_hash, log, transport)
     assert len(summaries) == 11
+    if loss:
+        assert sum(summary["retx"] for summary in summaries.values()) > 0
     assert not app.extensions["murmur_tracker"]._peers
     assert {row["node"] for row in log.rows if row.get("event") == "started"} == set(peers.values())
     with (tmp_path / "b5" / "payload.bin").open("ab") as stream:
         stream.write(b"x")
     with pytest.raises(ValueError, match="b5: file differs"):
-        run.verify(tmp_path, peers, size, expected_hash, log)
+        run.verify(tmp_path, peers, size, expected_hash, log, transport)
 
 
 def test_wait_reports_missing_peer_and_child_exit(tmp_path):
@@ -142,12 +154,14 @@ def test_wait_reports_missing_peer_and_child_exit(tmp_path):
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="runner uses Linux process signals")
-def test_runner_supervises_real_subprocesses_on_local_tcp(tmp_path):
+@pytest.mark.parametrize("transport", ["tcp", "murmurtp"])
+def test_runner_supervises_real_subprocesses_on_local_sockets(tmp_path, transport):
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0))
         port = sock.getsockname()[1]
     config = load_config(overrides={"tracker_url": f"http://127.0.0.1:{port}/announce",
-                                    "tracker_port": port, "peer_port_tcp": 0})
+                                    "tracker_port": port, "transport": transport,
+                                    "peer_port_tcp": 0, "peer_port_udp": 0})
     run.run_swarm(tmp_path, 256 * 1024 + 7, 60,
                   {"seed": "127.0.0.2", "a1": "127.0.0.3", "b1": "127.0.0.4"},
                   "127.0.0.1", config, lambda name: [])
