@@ -1,5 +1,14 @@
 # AI-use disclosure
 
+Gate S2 dashboard review. Majid opened the saved 64 MiB run in Ubuntu and
+supplied the screenshot. Codex checked the displayed completion and piece
+counts and saved the original image with the run ID in the evidence guide.
+Majid supplied six event rows from the same leecher. Codex recorded the
+selected pieces, observed availability and upload permission changes.
+Majid supplied the successful push-workflow result for `ab7d63c` from the
+GitHub CLI. Codex checked the workflow against the Makefile and recorded
+the run link in the evidence guide.
+
 M2.3 (Majid, assisted by OpenAI Codex). Codex connected a foreground tcpdump
 capture to the swarm runner and added tests for readiness, interruption,
 early exit and pcap readback. On Windows, Bash rejected six invalid capture
