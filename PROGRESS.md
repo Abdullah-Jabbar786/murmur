@@ -275,6 +275,16 @@ leechers verified the 8 MiB smoke transfer and the 64 MiB transfer with
 5% configured loss in each WAN direction. Both captures passed readback
 and both topologies were removed. [I3 run IDs, counts and hashes](experiments/README.md#ubuntu-i3-acceptance)
 
+I3 merged in PR #41 (`a783cfe`). M3.1 adds a time slider and variable-speed
+playback for saved runs, plus a per-connection overlay of congestion window,
+RTT and retransmissions. The Windows screenshots of the routed Ubuntu recording
+show 10/10 downloads and 256/256 pieces at 678.67 seconds. The header now
+identifies the recorded protocol and the end-of-run button reads Replay.
+During regression testing, the clean ten-leecher MurmurTP test timed out on
+Windows. Increasing the shared UDP socket receive buffer from 64 KiB to
+1 MiB let the same test finish in 12 seconds with its original deadline.
+The full Windows suite then passed 631 tests with five skips in 211.92 seconds.
+
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
 | 1 | | | |

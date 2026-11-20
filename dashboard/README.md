@@ -35,6 +35,36 @@ and point the dashboard at that folder.
 
 ## Reading the screen
 
+### Replay a saved run
+
+On Ubuntu with the updated dashboard, open the saved 64 MiB MurmurTP run
+at 5% WAN loss from the repo root:
+
+```bash
+.venv/bin/python -m dashboard.server --replay results/m22/20261120T113231Z-2ba9a49b --port 18765
+```
+
+Open the printed URL in the browser on the same machine. Replay starts paused
+at the first recorded timestamp. Press **Play** or drag the **Timeline** to a time.
+Dragging pauses playback. Choose **4×**, **16×** or **64×** to move through a
+long run faster. At the end, press **Replay** to start again. The header shows
+the recorded transport. To start a new TCP transfer, open the dashboard with
+`--demo`, select **TCP**, then press **Run TCP transfer**. The piece map, event
+feed, completion counts and transport chart follow the selected time. At the
+end of this run, **Downloads complete** should read **10 / 10**.
+
+Under **Transport → Chart**, select **Window, RTT and retransmissions** and
+choose a connection. Each line uses the percentage of its own peak in the
+displayed samples. The legend gives peak window in KiB, round-trip time in
+ms and cumulative retransmissions in packets. A dash means no measurement.
+
+Replay reads a fixed snapshot of the run at server startup. To review the
+Ubuntu recording on Windows, copy its `events-*.jsonl` and `metadata.json`
+into one folder and pass that folder to `--replay` with the Windows venv.
+Keep subdirectories when copying recordings that store logs per peer.
+
+### Live and replay measurements
+
 - Select a peer above the piece map or click a peer name in the table. The grid
   follows verified pieces, selections and hash failures for that peer. Optional
   metrics display a dash until supplied.

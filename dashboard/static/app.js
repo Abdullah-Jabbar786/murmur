@@ -5,6 +5,7 @@ const finite = Number.isFinite;
 let revision = "", cursor = 0, peers = new Map(), feed = [], meta, latest;
 let selected = "", pending = false, connected = false, mock = false;
 let newest = 0;
+let recording = [], applied = 0, playhead = 0, timer = null, lastTick = 0;
 const shown = n => finite(n) ? n.toLocaleString(undefined, {maximumFractionDigits: 2}) : "—";
 const pct = (n, d) => d > 0 ? Math.min(100, 100*n/d) : 0;
 
@@ -74,55 +75,75 @@ function svg(tag,attrs,label) {
 }
 function draw(p) {
   const rate=$("metric").value==="rate", chart=$("chart");
+  const overlay=$("metric").value==="overlay";
   const links=Array.from(p?.links || []);
   const choice=$("link");
   options(choice,links.map(([k,arr])=>[k,"Link "+k+" · "+arr.at(-1).peer]),choice.value);
   choice.hidden=rate || !links.length;
   const rows=rate ? p?.rates || [] : p?.links.get(choice.value) || [];
   const series=rate ? [["down_bps","#30d158"],["up_bps","#c1efd0"]] : [["cwnd_bytes","#30d158"]];
+  if (overlay) series.push(["rtt_ms","#8cc8ff"],["retx","#ff8fa8"]);
   const unit=rate ? "Mbit/s" : "KiB", factor=rate ? 1e6 : 1024;
   const values=rows.flatMap(r=>series.map(([key])=>r[key]).filter(finite));
   $("series").textContent=rate ? "↓ Download   ↑ Upload" : "Congestion window";
+  if (overlay) {
+    const labels=["Window","RTT","Retransmissions"];
+    $("series").replaceChildren(...series.map(([,color],i)=>{
+      const label=text("span",labels[i],"legend");
+      label.style.color=color;
+      return label;
+    }));
+  }
   chart.replaceChildren();
   if (!values.length) {
-    chart.append(svg("text",{x:320,y:125,"text-anchor":"middle",fill:"#a1a1aa"},rate?"Waiting for rate samples":"No congestion-window samples reported"));
+    chart.append(svg("text",{x:320,y:125,"text-anchor":"middle",fill:"#a1a1aa"},rate?"Waiting for rate samples":"No transport samples reported"));
     $("scale").textContent="Awaiting measurements";return;
   }
   const peak=Math.max(...values)/factor, max=peak || 1, start=rows[0].t, end=rows.at(-1).t;
   for (const fraction of [0,.5,1]) {
     const y=203-176*fraction;
     chart.append(svg("line",{x1:18,y1:y,x2:555,y2:y,stroke:"#343439"}),
-      svg("text",{x:566,y:y+4,fill:"#aaa","font-size":12},shown(max*fraction)));
+      svg("text",{x:566,y:y+4,fill:"#aaa","font-size":12},overlay?shown(100*fraction)+"%":shown(max*fraction)));
   }
+  const peaks=[];
   for(const [key,color] of series) {
-    const points=rows.filter(r=>finite(r[key])).map(r=>[18+537*(r.t-start)/Math.max(end-start,.001),203-176*r[key]/factor/max]);
+    const samples=rows.filter(r=>finite(r[key]));
+    const high=samples.length?Math.max(...samples.map(r=>r[key])):null;
+    if (overlay) peaks.push(high===null?"—":key==="cwnd_bytes"?shown(high/1024)+" KiB":key==="rtt_ms"?shown(high)+" ms":shown(high)+" retx");
+    const divisor=overlay?(high || 1):factor*max;
+    const points=samples.map(r=>[18+537*(r.t-start)/Math.max(end-start,.001),203-176*r[key]/divisor]);
     if (!points.length) continue;
     chart.append(svg("polyline",{points:points.map(pt=>pt.join(",")).join(" "),fill:"none",stroke:color,"stroke-width":3}));
     const [cx,cy]=points.at(-1);chart.append(svg("circle",{cx,cy,r:4,fill:color}));
   }
   chart.append(svg("text",{x:18,y:228,fill:"#aaa","font-size":12},shown(start)+" s"),
     svg("text",{x:555,y:228,"text-anchor":"end",fill:"#aaa","font-size":12},shown(end)+" s"));
-  $("scale").textContent="Peak "+shown(peak)+" "+unit;
+  $("scale").textContent=overlay?"Peaks: "+peaks.join(" · "):"Peak "+shown(peak)+" "+unit;
 }
 function render() {
   if(!latest) return;
   const list=[...peers.values()].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
   const leechers=list.filter(p=>!p.seed);
-  if (!peers.has(selected)) selected=(leechers[0] || list[0])?.key || "";
-  const p=peers.get(selected);
-  options($("peer"),list.map(p=>[p.key,p.name]),selected);
+  const p=peers.get(selected) || leechers[0] || list[0];
+  if (!latest.replay && p) selected=p.key;
+  options($("peer"),list.map(p=>[p.key,p.name]),p?.key);
   const data=meta || list.find(n=>n.dataset)?.dataset;
   const count=data?.pieces, complete=leechers.filter(n=>n.complete).length;
   const protocol=latest.protocol || list.flatMap(n=>[...n.links.values()]).find(a=>a.length)?.at(-1).proto;
-  if (!latest.demo) {
-    $("tcp").checked=protocol==="tcp";$("mtp").checked=protocol==="murmurtp";
-  }
+  $("transport-choice").hidden=!latest.demo;
+  const badge=$("recorded-transport");
+  badge.hidden=latest.demo || !protocol;
+  badge.textContent=protocol ? (latest.replay?"Recorded transport · ":"Transport · ")+(protocol==="tcp"?"TCP":"MurmurTP") : "";
   $("tcp").disabled=$("mtp").disabled=!latest.demo || pending || latest.status==="Running";
   $("run").hidden=!latest.demo;
   $("run").disabled=pending || latest.status==="Running";
   $("run").textContent=latest.status==="Running"?"Transferring…":"Run "+($("tcp").checked?"TCP":"MurmurTP")+" transfer";
   $("environment").textContent=latest.demo?"Localhost · real peers":mock?"Synthetic fixture":"Peer event logs";
   $("status").textContent=!connected?"Disconnected":latest.error || (latest.status==="Watching" && list.length && list.every(n=>n.summary)?"Ended":latest.status);
+  if (latest.replay) {
+    $("status").textContent=latest.more?"Loading replay":!recording.length?"No events":timer!==null?"Playing":
+      applied===recording.length?"Replay ended":"Paused";
+  }
   if(latest.invalid) $("status").textContent+=" · "+latest.invalid+" invalid rows";
   $("subtitle").textContent=[data ? shown(data.length/1048576)+" MiB · "+count+" pieces" : "Waiting for dataset metadata",
     leechers.length+" leechers",protocol || "Awaiting transport"].join("  ·  ");
@@ -130,7 +151,7 @@ function render() {
   const donePieces=leechers.reduce((a,n)=>a+n.pieces.size,0);
   const percent=count && leechers.length ? pct(donePieces,count*leechers.length) : null;
   const timed=leechers.filter(n=>finite(n.joined));
-  const duration=timed.length ? Math.max(...timed.map(n=>n.end ?? newest))-Math.min(...timed.map(n=>n.joined)) : 0;
+  const duration=timed.length ? Math.max(...timed.map(n=>n.end ?? (latest.replay?playhead:newest)))-Math.min(...timed.map(n=>n.joined)) : 0;
   let verifiedBytes=0;
   if(data && duration>0) for(const node of timed) for(const i of node.pieces) {
     if(!node.initial.has(i)) verifiedBytes+=Math.min(data.piece_length,data.length-i*data.piece_length);
@@ -171,6 +192,56 @@ function render() {
   if(!feed.length)$("feed").textContent="Waiting for peer events";
   draw(p);
 }
+
+function pause() {
+  clearInterval(timer);
+  timer=null;
+  $("play").textContent=recording.length && applied===recording.length?"Replay":"Play";
+}
+function seek(time) {
+  if (!recording.length) return;
+  const end=recording.at(-1).t;
+  time=Math.max(Number($("timeline").min),Math.min(time,end));
+  if (time<playhead) {
+    peers.clear(); feed=[]; newest=0; mock=false; applied=0;
+  }
+  while (applied<recording.length && recording[applied].t<=time) ingest(recording[applied++]);
+  playhead=time;
+  $("timeline").value=time;
+  const clock=shown(time)+" / "+shown(end)+" s";
+  $("clock").textContent=clock;
+  $("timeline").setAttribute("aria-valuetext",clock);
+  if (time>=end) pause();
+  else if (timer===null) $("play").textContent="Play";
+  render();
+}
+function readyReplay() {
+  if (!recording.length) {
+    $("clock").textContent="No recorded events";
+    render();
+    return;
+  }
+  const slider=$("timeline"), start=recording[0].t, end=recording.at(-1).t;
+  slider.min=start; slider.max=end;
+  slider.disabled=$("play").disabled=end<=start;
+  seek(start);
+}
+$("timeline").oninput=e=>{
+  pause();
+  seek(Number(e.target.value));
+};
+$("play").onclick=()=>{
+  if (timer!==null) {pause();render();return;}
+  if (applied===recording.length) seek(Number($("timeline").min));
+  lastTick=performance.now();
+  $("play").textContent="Pause";
+  timer=setInterval(()=>{
+    const now=performance.now();
+    seek(playhead+(now-lastTick)*Number($("speed").value)/1000);
+    lastTick=now;
+  },125);
+  render();
+};
 async function poll() {
   try {
     const res=await fetch("/api/state?since="+cursor+"&revision="+encodeURIComponent(revision),{cache:"no-store"});
@@ -178,13 +249,21 @@ async function poll() {
     const s=await res.json();
     if(revision!==s.revision){
       peers.clear();feed=[];selected="";mock=false;newest=0;
+      pause();recording=[];applied=0;playhead=0;
+      $("replay").hidden=!s.replay;
       if(s.protocol) {
         $("metric").value=s.protocol==="tcp"?"rate":"cwnd";
         $("tcp").checked=s.protocol==="tcp";$("mtp").checked=s.protocol==="murmurtp";
       }
     }
     revision=s.revision;cursor=s.cursor;latest=s;meta=s.dataset;connected=true;
-    s.events.forEach(ingest);render();
+    if (s.replay) {
+      recording.push(...s.events);
+      if (!s.more) {readyReplay();return;}
+      $("status").textContent="Loading replay";
+    } else {
+      s.events.forEach(ingest);render();
+    }
   } catch(err){connected=false;$("status").textContent="Disconnected · retrying";console.error(err);}
   setTimeout(poll,connected && latest?.more ? 0 : 1000);
 }

@@ -19,15 +19,24 @@ ROOT = Path(__file__).resolve().parent
 
 
 class Dashboard:
-    def __init__(self, directory, metadata=None, demo=False):
+    def __init__(self, directory, metadata=None, demo=False, *, replay=False):
+        if demo and replay:
+            raise ValueError("Choose either demo or saved-run replay.")
         self.lock = threading.Lock()
         self.demo = demo
+        self.replay = replay
         self.worker = self.error_stream = None
         self.temp = tempfile.TemporaryDirectory(prefix="murmur-dashboard-") if demo else None
         self.protocol = None
         self.metadata = metadata
         self.log = RunLog(Path(self.temp.name) if self.temp else directory)
         self.dataset = None
+        if replay:
+            # One refresh orders the whole recording by timestamp across peers.
+            # Freeze this revision so later writes cannot change a seek result.
+            self.log.refresh()
+            self.protocol = next((row["proto"] for row in self.log.rows
+                                  if row.get("proto") in ("tcp", "murmurtp")), None)
 
     def close(self):
         if self.worker and self.worker.poll() is None:
@@ -60,7 +69,7 @@ class Dashboard:
                                        stderr=subprocess.STDOUT)
 
     def snapshot(self, since, revision):
-        page = self.log.page(since, revision)
+        page = self.log.page(since, revision, refresh=not self.replay)
         meta = self.metadata or self.log.root / "metadata.json"
         if self.dataset is None and meta.is_file():
             try:
@@ -78,7 +87,7 @@ class Dashboard:
             if status == "Failed":
                 lines = (self.log.root / "worker.txt").read_text(errors="replace").splitlines()
                 failure = lines[-1] if lines else f"Transfer exited {code}"
-        return dict(page, dataset=self.dataset, demo=self.demo, protocol=self.protocol,
+        return dict(page, dataset=self.dataset, demo=self.demo, replay=self.replay, protocol=self.protocol,
                     status=status, error=failure)
 
 
@@ -137,17 +146,21 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", type=Path, nargs="?", help="watch this run for events-*.jsonl")
     parser.add_argument("--metadata", type=Path, help="dataset metadata for the watched run")
-    parser.add_argument("--demo", action="store_true", help="enable real local review transfers")
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument("--demo", action="store_true", help="enable real local review transfers")
+    modes.add_argument("--replay", action="store_true", help="replay a saved run with the time slider")
     parser.add_argument("--port", type=int, default=8080)
     args = parser.parse_args()
     if args.demo and (args.directory or args.metadata):
         parser.error("--demo uses its own temporary dataset and logs")
+    if args.replay and not args.directory:
+        parser.error("--replay requires a saved run directory")
     directory = args.directory or ROOT / "mock_run"
     if args.directory and not directory.is_dir():
         parser.error("run directory does not exist")
     if args.metadata:
         load_metadata(args.metadata)
-    app = Dashboard(directory, args.metadata, args.demo)
+    app = Dashboard(directory, args.metadata, args.demo, replay=args.replay)
     with ThreadingHTTPServer(("127.0.0.1", args.port), Handler) as server:
         server.app = app
         print(f"Murmur dashboard: http://127.0.0.1:{server.server_port}/", flush=True)

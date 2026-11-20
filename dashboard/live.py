@@ -53,8 +53,9 @@ class RunLog:
             self.files[path] = (stat.st_ino, offset)
         self.rows.extend(sorted(fresh, key=lambda row: row["t"]))
 
-    def page(self, since, revision):
-        self.refresh()
+    def page(self, since, revision, *, refresh=True):
+        if refresh:
+            self.refresh()
         if (revision and revision != self.revision) or since > len(self.rows):
             since = 0
         end = min(since + 2048, len(self.rows))
