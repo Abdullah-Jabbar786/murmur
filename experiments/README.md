@@ -101,6 +101,45 @@ Verified whole-file SHA-256 values from the runner:
 - 8 MiB: `0d7cf1d2830e2b4e5ee581fd1735241ca7ad06880a287d0c1d7190ca96f5184c`
 - 64 MiB: `45581d305941fbabc46eac1027f88e99fdc8dfd3de474343dc93a61766d2fd61`
 
+## M3.3 resumable series
+
+On Ubuntu, start one configuration in a new directory. The standard series
+runs one full warm-up followed by three measured repetitions. Each attempt
+builds and tears down the topology and verifies all ten files. Capturing and
+verifying a WAN pcap is enabled by default.
+
+```bash
+cd ~/murmur
+series_dir="results/m22/m33-$(date -u +%Y%m%dT%H%M%SZ)"
+sudo .venv/bin/python experiments/run.py --series "$series_dir" --transport tcp --size 8MiB
+```
+
+To check recovery, wait for `Checkpointed warmup` and `Starting recorded-1`.
+Press Ctrl+C during the transfer, then wait for the shell prompt. Resume in
+the same terminal:
+
+```bash
+sudo .venv/bin/python experiments/run.py --resume "$series_dir"
+sudo .venv/bin/python -m json.tool "$series_dir/run.json"
+```
+
+The runner skips the verified warm-up and retries the interrupted repetition
+from the beginning in a fresh attempt directory. Earlier logs and partial
+captures remain available. Once complete, `status` is `complete` and
+`measurements` lists exactly three verified directories. Repeating the resume
+command on a finished series skips all four trials. For dashboard replay, use
+one attempt directory from `measurements`.
+
+The atomic `run.json` records the configuration, source Git revision, attempt
+directories, timestamps, deadlines, status and verified results. A timeout
+returns a failure exit code. To retry with a longer per-transfer deadline,
+use `--resume "$series_dir" --timeout 1800`. Resume restores the original
+transport, loss, payload size and capture setting. On Linux the worker holds
+the lab lock during cleanup, including when its supervising CLI is killed.
+
+Existing single-transfer commands keep their output layout. New single runs
+also write a checkpoint. Older recordings can still be opened in the dashboard.
+
 ## Offline analysis
 
 Offline analysis for experiments E1 to E5:

@@ -11,4 +11,5 @@ checks every downloaded file. With tcpdump installed, the same command
 saves and verifies the [M2.3 WAN capture](../experiments/README.md#m23-wan-packet-capture).
 For Sprint 3, follow the [routed MurmurTP commands](../experiments/README.md#routed-murmurtp-swarm-i3)
 in order, starting with the 8 MiB run before the 64 MiB test at 5% WAN loss.
+To verify interruption and restart, follow the [M3.3 resumable series](../experiments/README.md#m33-resumable-series).
 The E1–E5 runs are pending.

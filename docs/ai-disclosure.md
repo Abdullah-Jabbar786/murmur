@@ -1,5 +1,10 @@
 # AI-use disclosure
 
+M3.3. Codex implemented experiment checkpointing and restart, including
+separate warm-up and measurement directories. Windows tests exercised a
+forced process exit, checkpoint reload, and retry after timeout or failed
+verification. Routed acceptance requires the Ubuntu namespace lab.
+
 M3.2. Codex selected 15 frames from the routed Ubuntu capture, added packet
 comments, and verified their bytes and timestamps against the original. Majid
 took the five Wireshark screenshots. Codex checked the packet fields visible
