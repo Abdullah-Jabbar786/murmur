@@ -3,7 +3,9 @@
 M3.3. Codex implemented experiment checkpointing and restart, including
 separate warm-up and measurement directories. Windows tests exercised a
 forced process exit, checkpoint reload, and retry after timeout or failed
-verification. Routed acceptance requires the Ubuntu namespace lab.
+verification. Majid ran the routed TCP resume check in Ubuntu. Codex recorded
+the attempt paths, packet counts, file hash and teardown results from the
+terminal output Majid supplied.
 
 M3.2. Codex selected 15 frames from the routed Ubuntu capture, added packet
 comments, and verified their bytes and timestamps against the original. Majid

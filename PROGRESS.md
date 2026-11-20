@@ -295,8 +295,10 @@ setup and capture checks, and a warm-up followed by three recorded runs.
 All 16 Windows checkpoint and capture checks passed. The wider Windows run
 had 633 passes, five skips and four failures. Three failing cases passed on
 retry or in isolation. The clean ten-leecher localhost MurmurTP timeout also
-reproduced on an untouched export of `e02553f`. The routed Ubuntu interruption
-and resume check is pending.
+reproduced on an untouched export of `e02553f`. The routed Ubuntu TCP resume
+check passed. The runner skipped the verified warm-up, retried the first
+measurement in attempt 2 and verified ten downloads in each of three
+measurements. [Ubuntu resume evidence](experiments/README.md#ubuntu-interruption-and-resume-check)
 
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|

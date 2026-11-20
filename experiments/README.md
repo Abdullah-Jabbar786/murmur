@@ -140,6 +140,25 @@ the lab lock during cleanup, including when its supervising CLI is killed.
 Existing single-transfer commands keep their output layout. New single runs
 also write a checkpoint. Older recordings can still be opened in the dashboard.
 
+### Ubuntu interruption and resume check
+
+In TCP series `m33-resume-20261120T191739Z`, the runner reported
+`Skipping verified warmup` after restart. It retried the interrupted first
+measurement in `recorded-1/attempt-2`. The next two measurements each
+completed on their first attempt. The WAN used 10 ms delay per direction,
+0% configured loss and a 10 Mbit/s cap, with a 10 Mbit/s seed uplink.
+
+| Verified attempt | Downloads | WAN TCP packets | Capture bytes | Leecher upload bytes |
+|---|---:|---:|---:|---:|
+| `recorded-1/attempt-2` | 10/10 | 44,296 | 5,393,411 | 70,008,832 |
+| `recorded-2/attempt-1` | 10/10 | 41,634 | 5,023,548 | 65,634,304 |
+| `recorded-3/attempt-1` | 10/10 | 50,679 | 6,173,889 | 65,961,984 |
+
+Each downloaded file was 8,388,608 bytes and matched seed SHA-256
+`0d7cf1d2830e2b4e5ee581fd1735241ca7ad06880a287d0c1d7190ca96f5184c`.
+The runner verified each capture, removed the topology, and checkpointed
+all three measurements.
+
 ## Offline analysis
 
 Offline analysis for experiments E1 to E5:
