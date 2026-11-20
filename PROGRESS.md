@@ -304,7 +304,9 @@ M3.3 merged in PR #44 (`be0bd8b`). M4.1 adds E1/E2 sweep and report
 generation. The 51 focused Windows sweep, series, capture and analysis tests
 passed. On the prior Ubuntu MurmurTP 5% loss logs, the exporter read ten peer
 goodputs, 676.91 s distribution time and 15,183 total retransmissions.
-The new Ubuntu pilot, final matrix measurements and interpretation are pending.
+The [8 MiB Ubuntu E2 TCP pilot](experiments/README.md#ubuntu-e2-pilot-result)
+passed at 100 ms configured RTT. Mean distribution time was 30.549 s across
+three recorded trials. The 64 MiB E1/E2 matrix and its analysis remain pending.
 
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|

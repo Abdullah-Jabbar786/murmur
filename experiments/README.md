@@ -219,3 +219,15 @@ retransmissions sum the eleven final summaries and are blank if any count
 is unavailable. The final summary includes mean, sample SD, min, max and
 observation counts. E1 plots distribution time, swarm goodput and available
 retransmissions. E2 plots distribution time and goodput for each leecher.
+
+### Ubuntu E2 pilot result
+
+Majid ran the 8 MiB pilot in `results/m41/pilot` with TCP, 50 ms configured
+delay per direction, 0% configured loss and 10 Mbit/s WAN and seed caps.
+The warm-up and all three recorded trials passed on their first attempt.
+Each trial verified all ten file hashes and the WAN capture, then removed
+the topology. The runner reported saving both CSV files and the plots.
+
+| Metric | Recorded | Missing | Mean | Sample SD | Min | Max |
+|---|---:|---:|---:|---:|---:|---:|
+| Time to last leecher completion (s) | 3 | 0 | 30.549 | 2.801 | 28.584 | 33.756 |
