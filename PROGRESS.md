@@ -256,7 +256,13 @@ All ten leechers verified the 8 MiB file, uploaded 69,828,608 bytes in
 aggregate, and the runner removed the topology. The
 [reviewed 200-frame sample](captures/s2-tcp-wan.pcapng) shows a TCP
 handshake between leechers on opposite LANs and data in both directions.
-The routed dashboard review and remaining Gate S2 checks are pending.
+M2.3 merged in PR #39 (`ab7d63c`). Majid reviewed the saved 64 MiB
+routed TCP run in the Ubuntu dashboard. It showed all ten downloads complete
+and all 256 pieces verified for `10.0.1.11`. The same leecher's log records
+piece selections with availability 1 and 4 and a cross-LAN unchoke followed
+by a choke of the same peer. Majid confirmed the fresh-checkout GitHub
+Actions run succeeded for merged main at `ab7d63c`. All technical Gate S2
+checks passed. [Gate S2 evidence and CI run](captures/README.md#gate-s2-ci)
 
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
