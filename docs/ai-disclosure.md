@@ -1,5 +1,20 @@
 # AI-use disclosure
 
+M4.1. Codex added the E1/E2 sweep and measured CSV/plot export, reusing the
+resumable series runner. Windows tests exercised the matrix, WAN delay
+arguments, retry selection and statistics. Codex also checked metric
+extraction against Majid's existing routed 5% loss recording. Majid then
+ran the 8 MiB E2 TCP pilot in Ubuntu. Codex recorded its completion counts
+and distribution-time statistics from the supplied terminal output and CSV row.
+Codex added optional compact payload retention and tested it on Windows with
+temporary trial directories, including cleanup interruption and resumption.
+Majid ran the compact pilot on Ubuntu. Codex recorded the retained file
+count, directory sizes and timing from his terminal output.
+Majid supplied the resumed final sweep output. Codex transcribed the 12
+distribution-time summary rows into a mean/sample-SD table.
+Codex checked the exported CSV against the 48 verified trial records, reproduced
+the summary from the metrics CSV, and summarized loss and RTT trends.
+
 M3.3. Codex implemented experiment checkpointing and restart, including
 separate warm-up and measurement directories. Windows tests exercised a
 forced process exit, checkpoint reload, and retry after timeout or failed

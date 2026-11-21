@@ -12,4 +12,8 @@ saves and verifies the [M2.3 WAN capture](../experiments/README.md#m23-wan-packe
 For Sprint 3, follow the [routed MurmurTP commands](../experiments/README.md#routed-murmurtp-swarm-i3)
 in order, starting with the 8 MiB run before the 64 MiB test at 5% WAN loss.
 To verify interruption and restart, follow the [M3.3 resumable series](../experiments/README.md#m33-resumable-series).
-The E1–E5 runs are pending.
+For E1/E2, run the [8 MiB pilot and final sweep](../experiments/README.md#m41-loss-and-rtt-sweeps).
+For a space-constrained VM, use the compact pilot command in that guide and
+measure its disk usage before choosing the final output location.
+The [final E1/E2 distribution times](../experiments/README.md#final-64-mib-distribution-times)
+were measured on Ubuntu. E3–E5 measurements are pending.

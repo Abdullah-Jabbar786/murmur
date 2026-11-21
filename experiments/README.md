@@ -168,4 +168,120 @@ Offline analysis for experiments E1 to E5:
 - `mock_results.csv`: synthetic acceptance data, never measured network results.
 
 See [results-analysis.md](../docs/results-analysis.md) for commands, schema and
-tests. Raw-log export and the E1–E5 experiment series are pending.
+tests. M4.1 uses the same CSV schema for measured E1/E2 data.
+
+## M4.1 loss and RTT sweeps
+
+On Ubuntu, from the repository root, run one 8 MiB pilot cell:
+
+```bash
+sudo .venv/bin/python experiments/run.py --sweep results/m41/pilot --cell E2-tcp-rtt100 --size 8MiB
+```
+
+Expect 50 ms delay per WAN direction, 0% configured loss and ten verified
+downloads in each of four transfers. The pilot ends by writing
+`results/m41/pilot/metrics.csv`, `summary.csv` and PNGs. Verify the three
+recorded observations in the distribution-time row:
+
+```bash
+grep 'distribution_time_s' results/m41/pilot/summary.csv
+```
+
+Repeat the same command after an interruption. The outer checkpoint pins
+the cell selection, file size, capture setting and Git revision. Each cell
+retains its own M3.3 checkpoint with attempts, failures, retries and file
+hash verification. Completed cells can regenerate reports from their logs.
+Use a separate directory for a different profile or revision.
+
+For the final matrix check free space with `df -h .` first. The 12 cells
+retain **33 GiB of payload files alone** (48 transfers × 11 files × 64 MiB).
+Allow additional space for WAN captures, logs and any retries. To use a
+larger Linux filesystem set `SWEEP_DIR=/absolute/path/to/a/new/directory`
+on the make command. When ready, run:
+
+```bash
+sudo make experiments
+```
+
+For a smaller disk, add `--keep-seed-only` to a new sweep. After each
+successful trial, the runner saves the verification checkpoint, rechecks
+the seed and remaining leecher files against its SHA-256, and removes the
+ten leecher payload copies. It records `retained_payload: seed/payload.bin`
+in the attempt checkpoint. Failed attempts retain their files for diagnosis.
+If cleanup is interrupted, repeat the same sweep command to finish it.
+Each passed trial keeps its logs, capture, metadata and seed. The 48 final
+trials retain 3 GiB of seed payloads, plus space for evidence, failed attempts,
+and the current transfer's downloads.
+
+Run this fresh pilot on Ubuntu to check measured usage:
+
+```bash
+sudo .venv/bin/python experiments/run.py --sweep results/m41/pilot-compact --cell E2-tcp-rtt100 --size 8MiB --keep-seed-only
+find results/m41/pilot-compact -name payload.bin -printf '%P %s bytes\n'
+du -sh results/m41/pilot-compact
+grep 'distribution_time_s' results/m41/pilot-compact/summary.csv
+df -h .
+```
+
+With four first-attempt passes, expect four seed paths of 8,388,608 bytes
+each and three recorded observations. Compare the directory size and free
+space before scheduling the larger matrix. The compact final command is
+`sudo make experiments KEEP_SEED_ONLY=1 SWEEP_DIR=results/m41/final-compact`.
+
+M4.1 covers six E1 cells (TCP/MurmurTP × 0/2/5% WAN loss per direction at
+20 ms RTT) and six E2 cells (TCP/MurmurTP × 20/100/200 ms configured RTT
+at 0% loss). Even the common baseline runs separately for each experiment.
+The default output is `results/m41/final/`. The dataset generator uses seed
+42 for identical files and the peer scheduler uses seed 0 across variants.
+Kernel loss and process scheduling can vary between repetitions.
+
+Each passed attempt contributes rows from the seed and leecher JSONL logs.
+Warm-ups are marked in the raw CSV and excluded from statistics. Distribution
+time is the last leecher's completion timestamp since the common start.
+Peer goodput divides verified file bits by that peer's completion time.
+Swarm goodput divides all ten files' bits by distribution time. Run-level
+retransmissions sum the eleven final summaries and are blank if any count
+is unavailable. The final summary includes mean, sample SD, min, max and
+observation counts. E1 plots distribution time, swarm goodput and available
+retransmissions. E2 plots distribution time and goodput for each leecher.
+
+### Ubuntu E2 pilot result
+
+Majid ran the 8 MiB pilot in `results/m41/pilot` with TCP, 50 ms configured
+delay per direction, 0% configured loss and 10 Mbit/s WAN and seed caps.
+The warm-up and all three recorded trials passed on their first attempt.
+Each trial verified all ten file hashes and the WAN capture, then removed
+the topology. The runner reported saving both CSV files and the plots.
+
+| Metric | Recorded | Missing | Mean | Sample SD | Min | Max |
+|---|---:|---:|---:|---:|---:|---:|
+| Time to last leecher completion (s) | 3 | 0 | 30.549 | 2.801 | 28.584 | 33.756 |
+
+Majid repeated the same cell on Ubuntu with `--keep-seed-only` at
+`ebe8b38`. The warm-up and three recorded trials each verified ten downloads
+and the WAN capture on attempt 1. The file inventory showed exactly four
+seed payloads of 8,388,608 bytes each. Including captures, logs and reports,
+`du -sh` reported 56M for the compact pilot and 374M for the original pilot.
+Across the three recorded compact trials, time to the last completion averaged
+32.525 s (sample SD 0.457 s, range 32.030–32.932 s, zero missing).
+
+### Final 64 MiB distribution times
+
+Ubuntu sweep `results/m41/final-compact` used revision `ebe8b38` and
+ten leechers per trial. Values below are seconds to the last leecher's
+completion, reported as mean ± sample SD. Each entry has three recorded
+trials and zero missing observations. The 12 warm-ups are excluded.
+
+| Experiment and setting | TCP (s) | MurmurTP (s) |
+|---|---:|---:|
+| E1, 0% loss per direction | 131.27 ± 10.00 | 387.97 ± 64.97 |
+| E1, 2% loss per direction | 128.09 ± 1.87 | 513.33 ± 105.79 |
+| E1, 5% loss per direction | 132.24 ± 10.78 | 594.15 ± 114.92 |
+| E2, 20 ms configured RTT | 122.79 ± 5.77 | 268.78 ± 47.47 |
+| E2, 100 ms configured RTT | 117.54 ± 1.78 | 476.97 ± 82.76 |
+| E2, 200 ms configured RTT | 119.61 ± 5.89 | 651.07 ± 20.80 |
+
+E1 held RTT at 20 ms and E2 held loss at 0%. Their common baseline was
+measured independently. MurmurTP mean completion time increased across
+both sweeps. TCP means varied by less than six seconds within each sweep.
+The distribution-time rows alone cannot identify the cause.

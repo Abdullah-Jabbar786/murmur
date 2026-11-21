@@ -300,6 +300,29 @@ check passed. The runner skipped the verified warm-up, retried the first
 measurement in attempt 2 and verified ten downloads in each of three
 measurements. [Ubuntu resume evidence](experiments/README.md#ubuntu-interruption-and-resume-check)
 
+M3.3 merged in PR #44 (`be0bd8b`). M4.1 adds E1/E2 sweep and report
+generation. The 51 focused Windows sweep, series, capture and analysis tests
+passed. On the prior Ubuntu MurmurTP 5% loss logs, the exporter read ten peer
+goodputs, 676.91 s distribution time and 15,183 total retransmissions.
+The [8 MiB Ubuntu E2 TCP pilot](experiments/README.md#ubuntu-e2-pilot-result)
+passed at 100 ms configured RTT. Mean distribution time was 30.549 s across
+three recorded trials.
+The opt-in compact sweep retains the verified seed after each successful trial.
+All 56 focused Windows sweep, series, capture and analysis checks passed,
+including interrupted cleanup and report generation from compact trials.
+The Ubuntu compact pilot passed at `ebe8b38`. All four attempts verified
+ten downloads each and retained one 8 MiB seed each. The compact directory
+used 56 MiB compared with 374 MiB for the earlier pilot.
+The final compact Ubuntu E1/E2 sweep at `ebe8b38` completed all 12 conditions.
+After restart the runner reused 25 verified trials and retried the interrupted
+measurement. All 36 recorded distribution times are present. The runner saved
+both CSVs and plots. The full directory occupied 5.4 GiB.
+See [distribution times](experiments/README.md#final-64-mib-distribution-times).
+The [measured results](results/e1-e2/README.md) include the 14 figures and
+13 checkpoints. All 48 passed attempts reconciled with the normalized rows.
+Re-aggregating 1,104 metric rows reproduced the 276-row summary byte for byte.
+The M4.1 evidence and analysis are ready for PR review.
+
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
 | 1 | | | |
