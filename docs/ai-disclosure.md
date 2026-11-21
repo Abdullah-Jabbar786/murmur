@@ -8,6 +8,9 @@ and checked completion counts against the supplied terminal output.
 Majid supplied the interrupted N=10 warm-up logs. Codex traced the missing
 completion to a3's closed origin session, added bounded reconnection, and
 added tests for mid-download recovery, retry exhaustion and the overall deadline.
+Majid ran the updated pilot and full 64 MiB Ubuntu sweep. Codex checked
+the 32 checkpoints and summarized the recorded-trial means from the terminal
+output of the WAN savings and summary CSVs.
 
 M4.1. Codex added the E1/E2 sweep and measured CSV/plot export, reusing the
 resumable series runner. Windows tests exercised the matrix, WAN delay

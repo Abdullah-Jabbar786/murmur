@@ -333,7 +333,10 @@ the 64 MiB scaling runs. All three N=10 swarm measurements finished. The
 N=10 client-server warm-up was interrupted after nine downloads completed.
 Peer a3 verified 48 of 256 pieces before its seed session reached the
 abandoned-request limit. Direct clients now retry the origin connection
-within the transfer deadline. Routed validation of this change is pending.
+within the transfer deadline. The updated ten-leecher pilot passed, followed
+by all 32 trials in the fresh 64 MiB Ubuntu sweep. At 20 leechers the swarm
+averaged 149.01 s to the last completion and used 64.32% fewer WAN bytes
+than client-server. The [E3 results](results/e3/README.md) cover all four counts.
 
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
