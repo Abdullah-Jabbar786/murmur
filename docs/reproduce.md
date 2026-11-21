@@ -17,3 +17,4 @@ For a space-constrained VM, use the compact pilot command in that guide and
 measure its disk usage before choosing the final output location.
 The [final E1/E2 distribution times](../experiments/README.md#final-64-mib-distribution-times)
 were measured on Ubuntu. E3–E5 measurements are pending.
+For E3, start with the [five-leecher TCP pilot](../experiments/README.md#e3-scaling-experiment).

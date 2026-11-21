@@ -285,3 +285,36 @@ E1 held RTT at 20 ms and E2 held loss at 0%. Their common baseline was
 measured independently. MurmurTP mean completion time increased across
 both sweeps. TCP means varied by less than six seconds within each sweep.
 The distribution-time rows alone cannot identify the cause.
+
+## E3 scaling experiment
+
+From the repository root on Ubuntu, run the five-leecher pilot in both
+distribution modes:
+
+```bash
+sudo .venv/bin/python experiments/run.py --e3 --count 5 --sweep results/e3-work/pilot --size 8MiB --keep-seed-only
+cat results/e3-work/pilot/wan-savings.csv
+grep -E 'distribution_time_s|seed_upload_share|wan_bytes' results/e3-work/pilot/summary.csv
+```
+
+Expect one warm-up and three recorded trials per mode. Each trial checks the
+downloaded files, capture and R1 WAN counters. Client-server clients connect
+directly to the seed and must upload zero payload. Swarm peers discover each
+other through the tracker. Both use TCP, 10 Mbit/s seed and WAN caps, 20 ms
+configured RTT and 0% configured loss. Active leechers alternate between LAN A
+and LAN B. At N=5 the runner starts three on A and two on B. The unused third
+namespace on B stays idle in both modes.
+
+After pilot review, the full command is `sudo make experiments-e3`. It runs
+N=2, 5, 10 and 20 with 64 MiB files (8 warm-ups and 24 recorded trials).
+Repeat the same command on the same Git revision to resume. Checkpoints, logs,
+captures, seed payloads, two metric CSVs and three plots go under
+`results/e3-work/final/`.
+
+Distribution time ends at the last verified leecher completion event. Seed
+upload share divides seed payload bytes sent by payload bytes sent by all peers.
+Each attempt records R1 wan0 RX and TX byte counters immediately before and
+after the transfer harness. Their summed deltas include both directions and
+control traffic. For each N, `wan-savings.csv` subtracts swarm mean WAN bytes
+from client-server mean WAN bytes across recorded trials. Positive savings
+mean the swarm used fewer WAN bytes. Negative savings are retained.

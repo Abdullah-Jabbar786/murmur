@@ -1,5 +1,9 @@
 # AI-use disclosure
 
+E3. Codex extended the sweep runner to vary active peer counts and exercise
+the existing client-server mode. Codex added tests for mode selection, WAN
+counter deltas, upload share, resumable reporting and signed WAN savings.
+
 M4.1. Codex added the E1/E2 sweep and measured CSV/plot export, reusing the
 resumable series runner. Windows tests exercised the matrix, WAN delay
 arguments, retry selection and statistics. Codex also checked metric

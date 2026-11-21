@@ -6,7 +6,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from core.config import load_config
-from experiments import series
+from experiments import scaling, series
 from experiments.aggregate import INPUT_FIELDS, aggregate, write_summary
 from experiments.plot import plot_summary
 from experiments.payloads import keep_seed
@@ -58,18 +58,25 @@ def trial_metrics(directory, peers, size):
 def report(directory, cells, peers, sweep_id):
     rows = []
     for cell in cells:
-        experiment, transport, loss, rtt = CELLS[cell]
         state = series.load(directory / cell)
-        size = state["config"]["file_size"]
+        config = state["config"]
+        experiment = cell.split("-", 1)[0]
+        size = config["file_size"]
+        cell_peers = scaling.lab_peers(config["leechers"]) if experiment == "E3" else peers
+        variant = config["transport"] + "-" + config["mode"].replace("_", "-")
         for trial in state["trials"]:
             attempt = trial["attempts"][-1]
-            if attempt["status"] != "passed" or attempt["result"]["verified_leechers"] != len(peers) - 1:
+            if attempt["status"] != "passed" or attempt["result"]["verified_leechers"] != len(cell_peers) - 1:
                 raise ValueError(f"{cell}/{trial['name']}: missing verified trial")
             path = directory / cell / attempt["directory"]
-            for subject, metric, value in trial_metrics(path, peers, size):
+            metrics = list(trial_metrics(path, cell_peers, size))
+            if experiment == "E3":
+                metrics.extend(scaling.metrics(attempt["result"], config["mode"]))
+            for subject, metric, value in metrics:
                 rows.append(dict(run_id=f"{sweep_id}/{cell}/{attempt['directory']}",
-                                 experiment=experiment, variant=f"{transport}-swarm", subject=subject,
-                                 loss_pct=loss, rtt_ms=rtt, leechers=len(peers)-1, file_bytes=size,
+                                 experiment=experiment, variant=variant, subject=subject,
+                                 loss_pct=config["wan_loss_pct"], rtt_ms=config["wan_rtt_ms"],
+                                 leechers=len(cell_peers)-1, file_bytes=size,
                                  data_kind="measured", seed=state["config"]["seed"],
                                  warmup=str(trial["name"] == "warmup").lower(),
                                  metric=metric, value=value))
@@ -82,15 +89,18 @@ def report(directory, cells, peers, sweep_id):
     summary = directory / "summary.csv"
     stats = aggregate(raw)
     write_summary(stats, summary)
-    for experiment in sorted({CELLS[c][0] for c in cells}):
-        x = "loss_pct" if experiment == "E1" else "rtt_ms"
+    for experiment in sorted({r["experiment"] for r in rows}):
+        x = {"E1": "loss_pct", "E2": "rtt_ms", "E3": "leechers"}[experiment]
         plots = [("distribution_time_s", "all")]
         if experiment == "E1":
             plots.append(("goodput_mbps", "all"))
             if any(r["experiment"] == "E1" and r["metric"] == "retx" and r["n"] for r in stats):
                 plots.append(("retx", "all"))
-        else:
+        elif experiment == "E2":
             plots.extend(("goodput_mbps", ip) for name, ip in peers.items() if name != "seed")
+        else:
+            scaling.write_comparison(directory, rows)
+            plots.extend([("wan_bytes", "all"), ("seed_upload_share", "all")])
         for metric, subject in plots:
             plot_summary(summary, directory / f"{experiment}-{metric}-{subject}.png",
                          experiment=experiment, metric=metric, x=x, subject=subject)
@@ -98,9 +108,12 @@ def report(directory, cells, peers, sweep_id):
 
 
 def execute(directory: Path, cell, size, timeout, capture, git_sha, run_trial, peers,
-            *, keep_seed_only=False):
-    cells = [cell] if cell else list(CELLS)
-    settings = dict(version="M4.1", cells=cells, file_size=size, capture=capture, git_sha=git_sha)
+            *, keep_seed_only=False, e3=False, count=None):
+    if e3:
+        cells = [name for name, (_, n) in scaling.CELLS.items() if count is None or n == count]
+    else:
+        cells = [cell] if cell else list(CELLS)
+    settings = dict(version="E3" if e3 else "M4.1", cells=cells, file_size=size, capture=capture, git_sha=git_sha)
     settings["keep_seed_only"] = keep_seed_only
     if directory.exists():
         marker = directory / "run.json"
@@ -115,9 +128,17 @@ def execute(directory: Path, cell, size, timeout, capture, git_sha, run_trial, p
         state = dict(settings, sweep_id=uuid4().hex)
         series.save(directory, state)
     for name in cells:
-        _, protocol, loss, rtt = CELLS[name]
-        config = load_config(overrides=dict(mode="swarm", transport=protocol, file_size=size,
+        mode, cell_peers = "swarm", peers
+        if e3:
+            mode, n = scaling.CELLS[name]
+            protocol, loss, rtt = "tcp", 0, 20
+            cell_peers = scaling.lab_peers(n)
+        else:
+            _, protocol, loss, rtt = CELLS[name]
+        config = load_config(overrides=dict(mode=mode, transport=protocol, file_size=size,
                                             wan_loss_pct=loss, wan_rtt_ms=rtt, seed=0))
+        if e3:
+            config["leechers"] = n
         path = directory / name
         print(f"Cell {name} in {path}", flush=True)
         if path.exists():
@@ -133,7 +154,7 @@ def execute(directory: Path, cell, size, timeout, capture, git_sha, run_trial, p
             if attempt["directory"] != relative:
                 raise ValueError(f"unexpected verified attempt path in {cell_path}")
             if attempt.get("retained_payload") != "seed/payload.bin":
-                keep_seed(cell_path / relative, peers, attempt["result"])
+                keep_seed(cell_path / relative, cell_peers, attempt["result"])
                 attempt["retained_payload"] = "seed/payload.bin"
                 series.save(cell_path, checkpoint)
 

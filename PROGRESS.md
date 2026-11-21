@@ -323,6 +323,11 @@ The [measured results](results/e1-e2/README.md) include the 14 figures and
 Re-aggregating 1,104 metric rows reproduced the 276-row summary byte for byte.
 The M4.1 evidence and analysis are ready for PR review.
 
+M4.1 merged in PR #45 (`67b8190`). E3 adds compact, resumable TCP swarm
+and client-server trials at 2/5/10/20 active leechers, with per-attempt
+R1 WAN byte deltas, seed upload share and a WAN savings comparison. The
+Ubuntu pilot, final runs and interpretation are pending.
+
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
 | 1 | | | |

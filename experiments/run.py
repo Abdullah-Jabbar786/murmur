@@ -21,15 +21,8 @@ from core.transports import transport_port
 from dashboard.live import RunLog
 from experiments import series, sweep
 from experiments.payloads import sha256
+from experiments.scaling import COUNTS, lab_peers, wan_delta
 from peer.metadata import generate_dataset, parse_size
-
-
-def lab_peers():
-    peers = {"seed": "10.0.3.11"}
-    for index in range(1, 6):
-        for lan, subnet in (("a", 1), ("b", 2)):
-            peers[f"{lan}{index}"] = f"10.0.{subnet}.{10 + index}"
-    return peers
 
 
 def launch(run_dir, name, args, env):
@@ -62,7 +55,7 @@ def stop(processes, grace=15):
             proc.wait()
 
 
-def wait_for_downloads(log, processes, leechers, timeout):
+def wait_for_downloads(log, processes, leechers, timeout, *, tracker=True):
     pending = set(leechers)
     cursor = 0
     deadline = time.monotonic() + timeout
@@ -74,7 +67,11 @@ def wait_for_downloads(log, processes, leechers, timeout):
             raise TimeoutError(f"Timed out waiting for {', '.join(sorted(pending))}")
         log.refresh()
         for row in log.rows[cursor:]:
-            if row["type"] == "tracker" and row.get("event") == "completed" and row["node"] in pending:
+            if tracker:
+                complete = row["type"] == "tracker" and row.get("event") == "completed"
+            else:
+                complete = row["type"] == "complete" and row.get("initial") is False
+            if complete and row["node"] in pending:
                 pending.remove(row["node"])
                 print(f"{row['node']} completed ({len(leechers) - len(pending)}/{len(leechers)})", flush=True)
         cursor = len(log.rows)
@@ -152,33 +149,49 @@ def run_swarm(run_dir, size, timeout, peers, tracker_ip, config, prefix, *, capt
     python = [sys.executable, "-m"]
     log = RunLog(run_dir)
     processes = {}
+    client_server = config.get("mode") == "client_server"
     with ExitStack() as cleanup:
         monitors = {}
         if capture:
             protocol = "udp" if config["transport"] == "murmurtp" else "tcp"
             monitors["capture"] = cleanup.enter_context(capture_wan(run_dir, transport_port(config), protocol))
-        tracker = launch(run_dir, "tracker", prefix("tracker") + python + [
-            "tracker.server", "--host", tracker_ip, "--port", str(config["tracker_port"])], env)
-        cleanup.callback(stop, {"tracker": tracker})
+        if not client_server:
+            tracker = launch(run_dir, "tracker", prefix("tracker") + python + [
+                "tracker.server", "--host", tracker_ip, "--port", str(config["tracker_port"])], env)
+            monitors["tracker"] = tracker
+            cleanup.callback(stop, {"tracker": tracker})
         # MurmurTP may wait for FIN retries or the 30 s inactivity timer under loss.
         cleanup.callback(stop, processes, 60 if config["transport"] == "murmurtp" else 15)
         for name, ip in peers.items():
             args = ["peer.node", "swarm", "--host", ip, "--file", str(run_dir / name / "payload.bin"),
                     "--mode", "seed" if name == "seed" else "create", "--metadata", str(metadata),
-                    "--config", str(config_path), "--tracker-url", config["tracker_url"],
+                    "--config", str(config_path),
                     "--run-dir", str(run_dir), "--total-timeout", str(timeout)]
+            if not client_server:
+                args.extend(["--tracker-url", config["tracker_url"]])
+            elif name != "seed":
+                args.extend(["--origin-seed", f"{peers['seed']}:{transport_port(config)}"])
             processes[name] = launch(run_dir, name, prefix(name) + python + args, env)
+            if name == "seed" and "leechers" in config:
+                # Direct clients dial once. Wait for the same listener milestone in both E3 modes.
+                deadline = time.monotonic() + min(60, timeout)
+                while b"Peer listening on " not in (run_dir / "seed.log").read_bytes():
+                    if processes[name].poll() is not None or time.monotonic() >= deadline:
+                        raise RuntimeError("seed listener did not start; see seed.log")
+                    time.sleep(.05)
         leechers = {ip for name, ip in peers.items() if name != "seed"}
-        wait_for_downloads(log, {**monitors, "tracker": tracker, **processes}, leechers, timeout)
+        wait_for_downloads(log, {**monitors, **processes}, leechers, timeout, tracker=not client_server)
     for name, proc in processes.items():
         if proc.returncode != 0:
             raise RuntimeError(f"{name} shutdown exited with {proc.returncode}; see {name}.log")
     summaries = verify(run_dir, peers, size, expected_hash, log, config["transport"])
     print(f"Verified {len(leechers)} leecher files, {size} bytes each. SHA-256 {expected_hash}")
     uploaded = sum(summaries[ip]["bytes_up"] for ip in leechers)
+    if client_server and uploaded != 0:
+        raise ValueError("client-server leechers uploaded payload")
     print(f"Leecher upload bytes: {uploaded}")
     return dict(sha256=expected_hash, file_bytes=size, verified_leechers=len(leechers),
-                leecher_upload_bytes=uploaded)
+                leecher_upload_bytes=uploaded, seed_upload_bytes=summaries[peers["seed"]]["bytes_up"])
 
 
 def lab_command(args, timeout, *, stdout=None):
@@ -198,16 +211,36 @@ def lab_command(args, timeout, *, stdout=None):
         raise subprocess.CalledProcessError(code, args)
 
 
+def wan_counters():
+    raw = subprocess.check_output(["ip", "-n", "murmur-r1", "-j", "-s", "link", "show",
+                                   "dev", "wan0"], text=True, timeout=10)
+    link, = json.loads(raw)
+    stats = link.get("stats64") or link["stats"]
+    return {direction: stats[direction]["bytes"] for direction in ("rx", "tx")}
+
+
 def routed_trial(directory, config, timeout, capture):
     size, loss = config["file_size"], config["wan_loss_pct"]
     rtt = config.get("wan_rtt_ms", 20)
-    print(f"Swarm transport: {config['transport']}; WAN loss per direction: {loss}%", flush=True)
+    count = config.get("leechers", 10)
+    scaling = "leechers" in config
+    print(f"Distribution: {config.get('mode', 'swarm')}, {count} leechers; "
+          f"transport: {config['transport']}; WAN loss per direction: {loss}%", flush=True)
     try:
-        lab_command(["bash", "infra/topology.sh", "--leechers-per-lan", "5"], 120)
+        lab_command(["bash", "infra/topology.sh", "--leechers-per-lan", str((count + 1) // 2)], 120)
         lab_command(["bash", "infra/netem.sh", "apply", "--loss", str(loss),
                      "--delay", f"{rtt / 2:g}"], 60)
-        result = run_swarm(directory, size, timeout, lab_peers(), "10.0.3.10", config,
+        if scaling:
+            before = wan_counters()
+        result = run_swarm(directory, size, timeout, lab_peers(count), "10.0.3.10", config,
                            lambda name: ["bash", "infra/run_in_ns.sh", name], capture=capture)
+        if scaling:
+            after = wan_counters()
+            wan_bytes = wan_delta(before, after)
+            if wan_bytes <= 0:
+                raise ValueError("expected routed traffic on R1 wan0")
+            result.update(wan_before=before, wan_after=after)
+            print(f"R1 wan0 transferred {wan_bytes} bytes (RX + TX)")
         if loss:
             with (directory / "wan-qdisc.log").open("x", encoding="utf-8") as counters:
                 for router in ("r1", "r2"):
@@ -216,7 +249,9 @@ def routed_trial(directory, config, timeout, capture):
                                  "show", "dev", "wan0"], 30, stdout=counters)
     finally:
         lab_command(["bash", "infra/teardown.sh"], 120)
-    if config["transport"] == "tcp":
+    if scaling:
+        print(f"PASS: E3 TCP {config['mode']}, {count}/{count} downloads verified, topology removed")
+    elif config["transport"] == "tcp":
         print("PASS: M2.2 routed TCP swarm, 10/10 downloads verified, topology removed")
     else:
         print(f"PASS: routed MurmurTP swarm, {size} bytes, {loss}% WAN loss, "
@@ -269,12 +304,18 @@ def main():
                        help="run one warm-up and three recorded trials in a new directory")
     modes.add_argument("--resume", type=Path, metavar="DIR", help="resume from DIR/run.json")
     modes.add_argument("--sweep", type=Path, metavar="DIR",
-                       help="start or continue an E1/E2 matrix in DIR (default payload: 8MiB)")
+                       help="start or continue a matrix in DIR (E1/E2 by default, or --e3)")
     parser.add_argument("--cell", choices=list(sweep.CELLS),
                         help="run one sweep condition for a pilot")
+    parser.add_argument("--e3", action="store_true", help="sweep TCP swarm and client-server scaling")
+    parser.add_argument("--count", type=int, choices=COUNTS, help="run both E3 modes at one peer count")
     parser.add_argument("--keep-seed-only", action="store_true",
                         help="keep one payload copy per verified sweep trial")
     args = parser.parse_args()
+    if args.e3 and (not args.sweep or args.cell):
+        parser.error("--e3 requires --sweep and selects its cells by --count")
+    if args.count is not None and not args.e3:
+        parser.error("--count requires --e3")
     if (args.size is not None and args.size < 1) or (args.timeout is not None and args.timeout < 1):
         parser.error("size and timeout must be positive")
     if args.cell and not args.sweep:
@@ -310,7 +351,8 @@ def main():
                     parser.exit(1, f"Sweep plotting requires Matplotlib in the Ubuntu project venv: {exc}\n")
                 sweep.execute(args.sweep.resolve(), args.cell, args.size or 8 * 1024**2,
                               args.timeout or 7200, not args.no_capture, git_sha,
-                              routed_trial, lab_peers(), keep_seed_only=args.keep_seed_only)
+                              routed_trial, lab_peers(), keep_seed_only=args.keep_seed_only,
+                              e3=args.e3, count=args.count)
                 return
             if args.resume:
                 run_dir = args.resume.resolve()
