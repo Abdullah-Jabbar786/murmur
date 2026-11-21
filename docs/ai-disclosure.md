@@ -1,5 +1,10 @@
 # AI-use disclosure
 
+E4. Codex implemented the routed single-flow sweep and its reporting using
+the existing flowbench and checkpoint runner. Local fixtures exercise socket
+sample parsing, RTT pairing, integrity checks, resume and plot generation.
+The routed Ubuntu pilot provides the next independent measurement.
+
 E3. Codex extended the sweep runner to vary active peer counts and exercise
 the existing client-server mode. Codex added tests for mode selection, WAN
 counter deltas, upload share, resumable reporting and signed WAN savings.

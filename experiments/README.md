@@ -352,3 +352,47 @@ sudo .venv/bin/python experiments/run.py --e3 --count 10 --sweep results/e3-work
 The 64 MiB matrix on the updated revision also needs its own directory, for
 example `sudo make experiments-e3 E3_DIR=results/e3-work/final-reconnect`.
 The earlier checkpoints and logs remain in `results/e3-work/final/`.
+
+## E4 single-flow transport comparison
+
+Each trial sends one deterministic file from a1 to b1 across R1 and R2 using
+the bulk-flow benchmark. The receiver hashes the payload and returns a receipt.
+The runner checks both endpoint summaries against the source digest and saves
+the WAN capture. The WAN cap is 10 Mbit/s with 10 ms delay per direction.
+Loss is applied independently in each direction. All variants use the same
+dataset seed (0), size, route and shaping settings.
+
+On Ubuntu, start with 8 MiB and 0% loss. This exercises TCP Reno, TCP CUBIC
+and MurmurTP, each with one warm-up and three recorded trials.
+
+```bash
+cd ~/murmur
+sudo .venv/bin/python experiments/run.py --e4 --sweep results/e4-work/pilot --loss 0 --size 8MiB
+cat results/e4-work/pilot/summary.csv
+```
+
+After reviewing the pilot, run `sudo make experiments-e4` for the 64 MiB
+matrix. The four loss levels (0%, 1%, 2%, 5%) give 12 conditions, 12 warm-ups
+and 36 recorded trials. Repeat the same command on the same Git revision to
+resume in `results/e4-work/final/`. Each attempt keeps its source payload,
+logs and verified capture by default.
+
+Receiver goodput counts verified payload bits divided by receiver transfer
+time. TCP samples come from the sender's established socket via `ss -nti`
+once per second. Each sample confirms the selected algorithm and converts
+the congestion window from segments to bytes using its current MSS.
+MurmurTP supplies its own congestion window and smoothed RTT at the same
+nominal interval. Samples outside the receiver payload interval are excluded.
+
+A concurrent one-per-second ICMP echo measures the same route under load.
+Each sender sample is paired with the nearest successful echo reply within
+one second. The absolute difference between smoothed RTT and echo RTT is
+a proxy for RTT estimation error. ICMP can experience different queuing from
+data packets. Unmatched samples have blank reference and error fields. A
+trial needs at least one pair and reports the mean error over its pairs.
+
+`metrics.csv` includes warm-ups. `summary.csv` aggregates the three recorded
+values per condition. `timeseries.csv` contains all recorded window, RTT and
+probe samples. Goodput and RTT error plots show means and sample SD. The
+time-series figure for each loss level shows recorded trial 1 for all three
+transports, with each trace ending at its own completion time.

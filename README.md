@@ -49,12 +49,12 @@ Client / Seed / Leecher
 | S1 | Sprint 1 | Topology, tracker, transport, codecs, loss shim | [Acceptance checks passed; evidence ready for review](captures/s1/README.md) |
 | S2 | Sprint 2 | TCP swarm with rarest-first and choking | [Technical checks passed on merged main at `ab7d63c`](captures/README.md#gate-s2-ci) |
 | S3 | Sprint 3 | MurmurTP swarm at 5% loss, one config flag | [Routed acceptance passed](experiments/README.md#ubuntu-i3-acceptance). [Five annotated exchanges](captures/README.md#gate-s3-murmurtp-exchanges) are documented. Protocol spec review remains open. |
-| S4 | Sprint 4 | E1–E5 experiments and graphs | [Routed E1/E2 results](results/e1-e2/README.md) measured and analyzed. E3–E5 pending. |
+| S4 | Sprint 4 | E1–E5 experiments and graphs | [E1/E2](results/e1-e2/README.md) and [E3](results/e3/README.md) measured and analyzed. E4/E5 measurements pending. |
 | S5 | Sprint 5 | Report, demo, verification, polishing | planned |
 
 ## Results
 
-Experimental results are pending. After completing E1–E5 across the target network conditions, the measured tables and graphs will be added here.
+The [results index](results/README.md) links the measured loss, RTT and swarm-scaling comparisons.
 
 ## Quick start
 

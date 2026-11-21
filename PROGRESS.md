@@ -338,6 +338,12 @@ by all 32 trials in the fresh 64 MiB Ubuntu sweep. At 20 leechers the swarm
 averaged 149.01 s to the last completion and used 64.32% fewer WAN bytes
 than client-server. The [E3 results](results/e3/README.md) cover all four counts.
 
+E3 merged in PR #46 (`94bb775`). The E4 runner connects the bulk-flow
+benchmark to the routed lab, samples TCP Reno, TCP CUBIC and MurmurTP, and
+exports receiver goodput, sender congestion windows and RTT error against
+concurrent ping samples. Windows regression: 664 passed and 6 skipped with
+warnings treated as errors. The Ubuntu pilot and final measurements are pending.
+
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
 | 1 | | | |
