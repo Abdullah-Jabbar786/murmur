@@ -1,0 +1,22 @@
+{
+  "version": "M4.1",
+  "cells": [
+    "E1-tcp-loss0",
+    "E1-tcp-loss2",
+    "E1-tcp-loss5",
+    "E2-tcp-rtt20",
+    "E2-tcp-rtt100",
+    "E2-tcp-rtt200",
+    "E1-murmurtp-loss0",
+    "E1-murmurtp-loss2",
+    "E1-murmurtp-loss5",
+    "E2-murmurtp-rtt20",
+    "E2-murmurtp-rtt100",
+    "E2-murmurtp-rtt200"
+  ],
+  "file_size": 67108864,
+  "capture": true,
+  "git_sha": "ebe8b38534f8990787cf49862c3c41b4d8acfbf4",
+  "keep_seed_only": true,
+  "sweep_id": "b8c126c43f3e4351a33e1058087a0727"
+}

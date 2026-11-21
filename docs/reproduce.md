@@ -15,4 +15,5 @@ To verify interruption and restart, follow the [M3.3 resumable series](../experi
 For E1/E2, run the [8 MiB pilot and final sweep](../experiments/README.md#m41-loss-and-rtt-sweeps).
 For a space-constrained VM, use the compact pilot command in that guide and
 measure its disk usage before choosing the final output location.
-The final routed E1–E5 measurements are pending.
+The [final E1/E2 distribution times](../experiments/README.md#final-64-mib-distribution-times)
+were measured on Ubuntu. E3–E5 measurements are pending.

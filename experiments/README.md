@@ -256,3 +256,32 @@ the topology. The runner reported saving both CSV files and the plots.
 | Metric | Recorded | Missing | Mean | Sample SD | Min | Max |
 |---|---:|---:|---:|---:|---:|---:|
 | Time to last leecher completion (s) | 3 | 0 | 30.549 | 2.801 | 28.584 | 33.756 |
+
+Majid repeated the same cell on Ubuntu with `--keep-seed-only` at
+`ebe8b38`. The warm-up and three recorded trials each verified ten downloads
+and the WAN capture on attempt 1. The file inventory showed exactly four
+seed payloads of 8,388,608 bytes each. Including captures, logs and reports,
+`du -sh` reported 56M for the compact pilot and 374M for the original pilot.
+Across the three recorded compact trials, time to the last completion averaged
+32.525 s (sample SD 0.457 s, range 32.030–32.932 s, zero missing).
+
+### Final 64 MiB distribution times
+
+Ubuntu sweep `results/m41/final-compact` used revision `ebe8b38` and
+ten leechers per trial. Values below are seconds to the last leecher's
+completion, reported as mean ± sample SD. Each entry has three recorded
+trials and zero missing observations. The 12 warm-ups are excluded.
+
+| Experiment and setting | TCP (s) | MurmurTP (s) |
+|---|---:|---:|
+| E1, 0% loss per direction | 131.27 ± 10.00 | 387.97 ± 64.97 |
+| E1, 2% loss per direction | 128.09 ± 1.87 | 513.33 ± 105.79 |
+| E1, 5% loss per direction | 132.24 ± 10.78 | 594.15 ± 114.92 |
+| E2, 20 ms configured RTT | 122.79 ± 5.77 | 268.78 ± 47.47 |
+| E2, 100 ms configured RTT | 117.54 ± 1.78 | 476.97 ± 82.76 |
+| E2, 200 ms configured RTT | 119.61 ± 5.89 | 651.07 ± 20.80 |
+
+E1 held RTT at 20 ms and E2 held loss at 0%. Their common baseline was
+measured independently. MurmurTP mean completion time increased across
+both sweeps. TCP means varied by less than six seconds within each sweep.
+The distribution-time rows alone cannot identify the cause.
