@@ -318,3 +318,37 @@ after the transfer harness. Their summed deltas include both directions and
 control traffic. For each N, `wan-savings.csv` subtracts swarm mean WAN bytes
 from client-server mean WAN bytes across recorded trials. Positive savings
 mean the swarm used fewer WAN bytes. Negative savings are retained.
+
+### Five-leecher Ubuntu pilot
+
+All eight 8 MiB trials passed. Each mode supplied three recorded
+observations after its warm-up, with zero missing values.
+
+| TCP distribution mode | Mean time to last completion (s) | Mean seed upload share | Mean R1 WAN bytes (RX + TX) |
+|---|---:|---:|---:|
+| Swarm | 18.135 | 31.23% | 17,827,458 |
+| Client-server | 44.904 | 100.00% | 17,994,523 |
+
+Peers supplied most of the swarm payload. Its mean completion time was
+about 60% shorter, while its mean WAN traffic was only 0.93% lower. The
+observed WAN byte ranges overlapped across the two modes.
+
+### Interrupted ten-leecher warm-up
+
+In the original 64 MiB client-server warm-up, nine clients finished and
+a3 verified 48 of 256 pieces. Its session reported `too many abandoned requests`
+and zero hash failures. This attempt supplies diagnostic logs only.
+An incomplete direct client now reconnects to its configured seed when the
+per-connection abandoned-request limit closes the link. It keeps verified
+pieces and partial blocks. At most eight reconnects are allowed within the
+original transfer deadline.
+
+To check the change on Ubuntu, use a fresh directory on the updated revision:
+
+```bash
+sudo .venv/bin/python experiments/run.py --e3 --count 10 --sweep results/e3-work/pilot-n10-reconnect --size 8MiB --keep-seed-only
+```
+
+The 64 MiB matrix on the updated revision also needs its own directory, for
+example `sudo make experiments-e3 E3_DIR=results/e3-work/final-reconnect`.
+The earlier checkpoints and logs remain in `results/e3-work/final/`.

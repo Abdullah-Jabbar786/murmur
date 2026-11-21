@@ -16,6 +16,13 @@ from peer.telemetry import PeerEvents
 from peer.wire import Choke, Have, Interested, NotInterested, Piece, Request, Unchoke, read_message
 
 
+_ORIGIN_RETRY_DELAYS = (0.5, 1, 2, 4, 4, 4, 4, 4)
+
+
+class _AbandonedRequestLimit(PeerProtocolError):
+    """Retire this connection before its late-reply allowance grows further."""
+
+
 @dataclass
 class _Pending:
     future: asyncio.Future
@@ -90,7 +97,7 @@ class _Link:
                             self.retired[key] += 1
                             pending.future.set_result(None)
                     if self.retired.total() > 64:
-                        raise PeerProtocolError("too many abandoned requests")
+                        raise _AbandonedRequestLimit("too many abandoned requests")
             elif isinstance(message, (Interested, NotInterested)):
                 self.peer_interested = isinstance(message, Interested)
                 await self.upload_policy()
@@ -346,6 +353,7 @@ class SwarmNode:
         task = asyncio.create_task(self._run_link(_Link(self, connection, outgoing), ready))
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
+        return task
 
     async def _accept(self):
         while True:
@@ -356,6 +364,10 @@ class SwarmNode:
             self._launch(connection, False)
 
     async def connect(self, address):
+        peer_id, _ = await self._connect_session(address)
+        return peer_id
+
+    async def _connect_session(self, address):
         self._check_open()
         if self.mode == "client_server":
             if self.is_seed:
@@ -367,9 +379,9 @@ class SwarmNode:
             await connection.close()
             raise RuntimeError("node is closed")
         ready = asyncio.get_running_loop().create_future()
-        self._launch(connection, True, ready)
+        session = self._launch(connection, True, ready)
         try:
-            return await ready
+            return await ready, session
         except asyncio.CancelledError:
             await connection.close()
             raise
@@ -413,6 +425,7 @@ class SwarmNode:
             self.errors.append(f"{type(exc).__name__}: {exc}")
             if ready is not None and not ready.done():
                 ready.set_exception(exc)
+            return exc
         finally:
             if reader is not None:
                 reader.cancel()
@@ -507,6 +520,47 @@ class SwarmNode:
         link = self._links[peer_id]
         link.upload_allowed = allowed
         await link.upload_policy()
+
+    async def download_from_origin(self, timeout):
+        """Keep a direct seed session available until verification or the original deadline."""
+        if self.mode != "client_server" or self.is_seed:
+            raise ValueError("origin downloads require a client-server leecher")
+        _timeout(timeout)
+        completion = asyncio.create_task(self.wait_complete(timeout))
+        connection = asyncio.create_task(self._maintain_origin())
+        try:
+            done, _ = await asyncio.wait((completion, connection), return_when=asyncio.FIRST_COMPLETED)
+            if completion in done:
+                await completion
+            else:
+                await connection
+                await completion
+        finally:
+            for task in (completion, connection):
+                task.cancel()
+            await asyncio.gather(completion, connection, return_exceptions=True)
+
+    async def _maintain_origin(self):
+        # Each fresh session gets a fresh request ledger. The node retains its
+        # verified pieces, partial blocks and cumulative metrics across sessions.
+        retries = len(_ORIGIN_RETRY_DELAYS)
+        for attempt in range(retries + 1):
+            if self.store.complete:
+                return
+            try:
+                _, session = await self._connect_session(self._seed_address)
+                error = await asyncio.shield(session)
+                if self.store.complete:
+                    return
+                if error is not None:
+                    raise error
+                raise EOFError("origin seed closed before download completed")
+            except (OSError, EOFError, asyncio.TimeoutError, _AbandonedRequestLimit) as exc:
+                if attempt == retries:
+                    raise ConnectionError(f"origin seed retries exhausted after {retries} retries: {exc}") from exc
+                print(f"Origin session ended ({exc}); reconnecting to seed "
+                      f"({attempt + 1}/{retries})", flush=True)
+                await asyncio.sleep(_ORIGIN_RETRY_DELAYS[attempt])
 
     async def wait_complete(self, timeout=30.0):
         _timeout(timeout)

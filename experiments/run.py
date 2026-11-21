@@ -173,7 +173,7 @@ def run_swarm(run_dir, size, timeout, peers, tracker_ip, config, prefix, *, capt
                 args.extend(["--origin-seed", f"{peers['seed']}:{transport_port(config)}"])
             processes[name] = launch(run_dir, name, prefix(name) + python + args, env)
             if name == "seed" and "leechers" in config:
-                # Direct clients dial once. Wait for the same listener milestone in both E3 modes.
+                # Wait for the same seed listener milestone in both E3 modes.
                 deadline = time.monotonic() + min(60, timeout)
                 while b"Peer listening on " not in (run_dir / "seed.log").read_bytes():
                     if processes[name].poll() is not None or time.monotonic() >= deadline:

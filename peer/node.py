@@ -305,9 +305,12 @@ async def _run_cli(args) -> None:
                     await serve_discovered(node, TrackerClient(tracker_url), args.total_timeout, event_log,
                                            single_session=config.get("transport") == "murmurtp")
                     return
-                for address in peers:
-                    await node.connect(address)
-                await node.wait_complete(args.total_timeout)
+                if distribution_mode == "client_server" and not is_seed:
+                    await node.download_from_origin(args.total_timeout)
+                else:
+                    for address in peers:
+                        await node.connect(address)
+                    await node.wait_complete(args.total_timeout)
                 status = "continuing to serve" if node.uploads_enabled else "client-server uploads disabled"
                 print(f"Verified {len(store.owned_pieces)} pieces; {status}: {args.file}", flush=True)
                 await asyncio.Event().wait()

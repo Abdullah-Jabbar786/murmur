@@ -13,7 +13,7 @@ from core.loopback import LoopbackRegistry, LoopbackTransport
 from core.tcp import TcpTransport
 from peer.metadata import Metadata
 from peer.storage import PieceStore
-from peer.swarm import SwarmNode
+from peer.swarm import SwarmNode, _AbandonedRequestLimit
 from peer.wire import Bitfield, Choke, Handshake, Interested, Request, encode_message, read_message
 
 DATA = b"a" * 32768 + b"b" * 32768 + b"tail"
@@ -82,6 +82,60 @@ async def test_two_leechers_download_only_from_seed_and_upload_zero(tmp_path, tr
         finally:
             await connection.close()
             await intruder.close()
+
+
+@pytest.mark.parametrize("reason", ["disconnect", "abandoned_requests"])
+async def test_origin_reconnect_keeps_verified_pieces(tmp_path, monkeypatch, reason):
+    async with setup_nodes(tmp_path, "tcp", count=1) as ((seed, client), _):
+        dialed = []
+        connect = client.transport.connect
+        verified = client._verified
+
+        async def record_dial(address):
+            dialed.append((address, client.store.owned_pieces.copy()))
+            return await connect(address)
+
+        async def interrupt_after_first_piece(piece):
+            await verified(piece)
+            if len(dialed) == 1:
+                if reason == "abandoned_requests":
+                    raise _AbandonedRequestLimit("too many abandoned requests")
+                await seed._links[client.peer_id].connection.close()
+                await asyncio.Event().wait()  # The closed session cancels this worker.
+
+        monkeypatch.setattr(client.transport, "connect", record_dial)
+        monkeypatch.setattr(client, "_verified", interrupt_after_first_piece)
+        await client.download_from_origin(8)
+        assert [address for address, _ in dialed] == [seed.address, seed.address]
+        assert [len(pieces) for _, pieces in dialed] == [0, 1]
+        assert client.store.path.read_bytes() == DATA
+        assert client.bytes_received == len(DATA)
+        assert client.bytes_sent == client.hash_failures == 0
+
+
+async def test_origin_retries_exhausted(tmp_path, monkeypatch):
+    async with setup_nodes(tmp_path, count=1) as ((seed, client), _):
+        attempts = []
+
+        async def unavailable(address):
+            attempts.append(address)
+            raise ConnectionRefusedError("seed unavailable")
+
+        monkeypatch.setattr("peer.swarm._ORIGIN_RETRY_DELAYS", (0, 0))
+        monkeypatch.setattr(client.transport, "connect", unavailable)
+        with pytest.raises(ConnectionError, match="retries exhausted"):
+            await client.download_from_origin(5)
+        assert attempts == [seed.address] * 3
+
+
+async def test_origin_deadline_bounds_retry_delay(tmp_path, monkeypatch):
+    async with setup_nodes(tmp_path, count=1) as ((_, client), _endpoint):
+        async def unavailable(address):
+            raise ConnectionRefusedError("seed unavailable")
+
+        monkeypatch.setattr(client.transport, "connect", unavailable)
+        with pytest.raises(asyncio.TimeoutError):
+            await client.download_from_origin(0.05)
 
 
 async def test_nonseed_outbound_rejected_before_transport_is_called(tmp_path, monkeypatch):
