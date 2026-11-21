@@ -323,6 +323,21 @@ The [measured results](results/e1-e2/README.md) include the 14 figures and
 Re-aggregating 1,104 metric rows reproduced the 276-row summary byte for byte.
 The M4.1 evidence and analysis are ready for PR review.
 
+M4.1 merged in PR #45 (`67b8190`). E3 adds compact, resumable TCP swarm
+and client-server trials at 2/5/10/20 active leechers, with per-attempt
+R1 WAN byte deltas, seed upload share and a WAN savings comparison. The
+Ubuntu five-leecher pilot passed in both modes. The seed supplied 31.23%
+of uploaded payload in swarm mode and 100% in client-server mode.
+The [pilot results](experiments/README.md#five-leecher-ubuntu-pilot) precede
+the 64 MiB scaling runs. All three N=10 swarm measurements finished. The
+N=10 client-server warm-up was interrupted after nine downloads completed.
+Peer a3 verified 48 of 256 pieces before its seed session reached the
+abandoned-request limit. Direct clients now retry the origin connection
+within the transfer deadline. The updated ten-leecher pilot passed, followed
+by all 32 trials in the fresh 64 MiB Ubuntu sweep. At 20 leechers the swarm
+averaged 149.01 s to the last completion and used 64.32% fewer WAN bytes
+than client-server. The [E3 results](results/e3/README.md) cover all four counts.
+
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
 | 1 | | | |

@@ -1,0 +1,18 @@
+{
+  "version": "E3",
+  "cells": [
+    "E3-swarm-n2",
+    "E3-client_server-n2",
+    "E3-swarm-n5",
+    "E3-client_server-n5",
+    "E3-swarm-n10",
+    "E3-client_server-n10",
+    "E3-swarm-n20",
+    "E3-client_server-n20"
+  ],
+  "file_size": 67108864,
+  "capture": true,
+  "git_sha": "2b141d2d113b8ca1a1ffc42039af6cdf4b277f94",
+  "keep_seed_only": true,
+  "sweep_id": "a08b83e057a143ef8c57fd0a71ede018"
+}
