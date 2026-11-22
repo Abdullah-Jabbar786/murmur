@@ -375,6 +375,14 @@ The [reproduction record](docs/reproduce.md#m42-checkout-verification)
 retains the failed measurements and diagnostic. Fresh-VM acceptance and a
 complete run of the combined command remain pending.
 
+S5 report draft: [docs/report.md](docs/report.md) brings together architecture,
+swarm and transport design, methodology, E1–E5 results and annotated packet
+evidence. It retains the negative two-peer WAN savings, mixed-flow fairness
+limitation, failed shaping checks and unresolved Windows timeout. The draft
+uses existing measurements; no experiments were rerun for report preparation.
+Report review, independent protocol review, fresh-VM acceptance, the complete
+combined experiment run and final demo/release work remain pending.
+
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
 | 1 | | | |

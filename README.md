@@ -50,7 +50,7 @@ Client / Seed / Leecher
 | S2 | Sprint 2 | TCP swarm with rarest-first and choking | [Technical checks passed on merged main at `ab7d63c`](captures/README.md#gate-s2-ci) |
 | S3 | Sprint 3 | MurmurTP swarm at 5% loss, one config flag | [Routed acceptance passed](experiments/README.md#ubuntu-i3-acceptance). [Five annotated exchanges](captures/README.md#gate-s3-murmurtp-exchanges) are documented. Protocol spec review remains open. |
 | S4 | Sprint 4 | E1–E5 experiments and graphs | [E1/E2](results/e1-e2/README.md), [E3](results/e3/README.md), [E4](results/e4/README.md) and [E5](results/e5/README.md) measured and analyzed. |
-| S5 | Sprint 5 | Report, demo, verification, polishing | planned |
+| S5 | Sprint 5 | Report, demo, verification, polishing | [Report drafted for review](docs/report.md); final verification, demo and release review pending. |
 
 ## Results
 
@@ -71,6 +71,7 @@ single command for all five experiments.
 
 See the docs for the full design and workflow:
 
+- [Project report draft](docs/report.md)
 - [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md)
 - [docs/reproduce.md](docs/reproduce.md)
 - [docs/tcp-transport.md](docs/tcp-transport.md)
