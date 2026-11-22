@@ -3,7 +3,10 @@
 E5. Codex implemented the shared start signal, receiver byte counters, routed
 pairings and fairness report. Windows tests exercise real TCP and MurmurTP
 transfers, the common time window, asymmetric rates, retry handling and
-report generation. Routed Ubuntu measurements are pending.
+report generation. Majid ran the 8 MiB pilot and 64 MiB final sweep on Ubuntu.
+Codex imported the eight final artifacts, checked all 12 checkpoints and 36
+per-trial metrics, and recomputed the nine summary rows. The 2,357 recorded
+receiver counter rows reproduced the measurement windows and per-flow goodput.
 
 E4. Codex implemented the routed single-flow sweep and its reporting using
 the existing flowbench and checkpoint runner. Local fixtures exercise socket
