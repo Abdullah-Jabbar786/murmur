@@ -1,4 +1,4 @@
-.PHONY: setup test topo topo-down test-topo netem netem-clear test-netem experiments experiments-e3 experiments-e4 experiments-e5
+.PHONY: setup test topo topo-down test-topo netem netem-clear test-netem experiments experiments-e1-e2 experiments-e3 experiments-e4 experiments-e5
 
 LEECHERS_PER_LAN ?= 5
 export ARGS
@@ -27,11 +27,25 @@ netem-clear:
 test-netem:
 	python3 infra/test_netem.py
 
-# Run on Ubuntu with sudo. Reuse the directory to resume the same matrix.
+# All four runners share one namespace lab. Separate recipe lines run in order,
+# including under make -j, and stop the sequence if a runner fails.
+REPRO_DIR ?= results/reproduce-work
+experiments: SWEEP_DIR = $(REPRO_DIR)/e1-e2
+experiments: E3_DIR = $(REPRO_DIR)/e3
+experiments: E4_DIR = $(REPRO_DIR)/e4
+experiments: E5_DIR = $(REPRO_DIR)/e5
+experiments: KEEP_SEED_ONLY = 1
+experiments:
+	$(MAKE) experiments-e1-e2 SWEEP_DIR="$(SWEEP_DIR)" KEEP_SEED_ONLY="$(KEEP_SEED_ONLY)"
+	$(MAKE) experiments-e3 E3_DIR="$(E3_DIR)"
+	$(MAKE) experiments-e4 E4_DIR="$(E4_DIR)"
+	$(MAKE) experiments-e5 E5_DIR="$(E5_DIR)"
+
+# Standalone targets retain their original output paths and settings.
 SWEEP_DIR ?= results/m41/final
 SIZE ?= 64MiB
 KEEP_SEED_ONLY ?= 0
-experiments:
+experiments-e1-e2:
 	.venv/bin/python experiments/run.py --sweep "$(SWEEP_DIR)" --size "$(SIZE)" $(if $(filter 1,$(KEEP_SEED_ONLY)),--keep-seed-only)
 
 E3_DIR ?= results/e3-work/final

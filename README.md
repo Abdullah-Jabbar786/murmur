@@ -60,8 +60,12 @@ The [results index](results/README.md) links the loss, RTT, swarm scaling, singl
 
 ```bash
 make setup   # install dependencies
+source .venv/bin/activate
 make test    # run tests
 ```
+
+The [reproduction guide](docs/reproduce.md) covers the routed pilot and the
+single command for all five experiments.
 
 ## Documentation
 
