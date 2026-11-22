@@ -342,7 +342,12 @@ E3 merged in PR #46 (`94bb775`). The E4 runner connects the bulk-flow
 benchmark to the routed lab, samples TCP Reno, TCP CUBIC and MurmurTP, and
 exports receiver goodput, sender congestion windows and RTT error against
 concurrent ping samples. Windows regression: 664 passed and 6 skipped with
-warnings treated as errors. The Ubuntu pilot and final measurements are pending.
+warnings treated as errors. The [8 MiB Ubuntu pilot](experiments/README.md#e4-ubuntu-pilot-results)
+passed all 12 transfers and produced all six expected summary rows.
+The [64 MiB loss sweep](results/e4/README.md) completed on Ubuntu with
+36 recorded transfers and three observations in every summary row. The Windows
+import reconciled all 24 summary rows with the trial checkpoints and checked
+7,407 recorded sender samples, including 7,347 paired with a ping RTT.
 
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|

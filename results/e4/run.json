@@ -1,0 +1,22 @@
+{
+  "version": "E4",
+  "cells": [
+    "E4-reno-loss0",
+    "E4-cubic-loss0",
+    "E4-murmurtp-loss0",
+    "E4-reno-loss1",
+    "E4-cubic-loss1",
+    "E4-murmurtp-loss1",
+    "E4-reno-loss2",
+    "E4-cubic-loss2",
+    "E4-murmurtp-loss2",
+    "E4-reno-loss5",
+    "E4-cubic-loss5",
+    "E4-murmurtp-loss5"
+  ],
+  "file_size": 67108864,
+  "capture": true,
+  "git_sha": "a95279a187937cd85b15a6605e05ed3055862da8",
+  "keep_seed_only": false,
+  "sweep_id": "bd2afbc8fcdf42f8aa34cf598b1e8bfc"
+}

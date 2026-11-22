@@ -396,3 +396,19 @@ values per condition. `timeseries.csv` contains all recorded window, RTT and
 probe samples. Goodput and RTT error plots show means and sample SD. The
 time-series figure for each loss level shows recorded trial 1 for all three
 transports, with each trace ending at its own completion time.
+
+### E4 Ubuntu pilot results
+
+All 12 routed 8 MiB transfers at 0% configured loss verified their payload
+and WAN capture on the first attempt. The table uses the three recorded
+trials per transport. All six summary rows report three observations.
+
+| Transport | Mean receiver goodput (Mbit/s) | Mean absolute difference between sender SRTT and ping RTT (ms) |
+|---|---:|---:|
+| TCP Reno | 9.11 | 87.45 |
+| TCP CUBIC | 8.66 | 49.86 |
+| MurmurTP | 4.02 | 10.84 |
+
+Reno had the highest receiver goodput in this pilot. MurmurTP's smoothed
+RTT was closest to the concurrent ping observations. The [64 MiB results](../results/e4/README.md)
+extend this comparison to 1%, 2% and 5% configured loss.
