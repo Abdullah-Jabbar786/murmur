@@ -19,7 +19,7 @@ if __package__ in (None, ""):
 from core.config import load_config
 from core.transports import transport_port
 from dashboard.live import RunLog
-from experiments import e4, series, sweep
+from experiments import e4, e5, series, sweep
 from experiments.payloads import sha256
 from experiments.scaling import COUNTS, lab_peers, wan_delta
 from peer.metadata import generate_dataset, parse_size
@@ -324,6 +324,86 @@ def flow_trial(directory, config, timeout, capture):
     return result
 
 
+def fairness_trial(directory, config, timeout, capture):
+    """Release two ready bulk senders onto the same routed WAN."""
+    size = config["file_size"]
+    source = directory / "payload.bin"
+    generate_dataset(source, directory / "metadata.json", size=size, seed=config["seed"])
+    digest = sha256(source)
+    gate = directory / "start-payload"
+    ns = ["bash", "infra/run_in_ns.sh"]
+    bench = [sys.executable, "-m", "murmurtp.flowbench"]
+    flows = []
+    processes = {}
+    env = dict(os.environ, LC_ALL="C", MURMUR_T0=str(time.time()), PYTHONUNBUFFERED="1")
+
+    def wait_ready(role, marker):
+        deadline = time.monotonic() + min(timeout, 60)
+        for i, path, *_ in flows:
+            log = path / f"{role}.log"
+            while marker not in log.read_bytes():
+                if any(p.poll() is not None for p in processes.values()) or time.monotonic() >= deadline:
+                    raise RuntimeError(f"E5 {role} readiness failed; see flow-{i} and endpoint logs")
+                time.sleep(.05)
+
+    try:
+        lab_command(["bash", "infra/topology.sh", "--leechers-per-lan", "2"], 120)
+        lab_command(["bash", "infra/netem.sh", "apply", "--delay", "10", "--loss", "0", "--rate", "10"], 60)
+        with ExitStack() as stack:
+            for i, proto in enumerate(config["pairing"].split("-"), 1):
+                path = directory / f"flow-{i}"
+                path.mkdir()
+                port = 6900 + i
+                host = f"10.0.2.{10 + i}"
+                settings = dict(config, transport=proto)
+                if proto == "tcp":
+                    settings["tcp_congestion_control"] = "cubic"
+                cfg = path / "config.json"
+                cfg.write_text(json.dumps(settings), encoding="utf-8")
+                args = ["--config", str(cfg), "--run-dir", str(path), "--host", host, "--port", str(port),
+                        "--timeout", str(timeout), "--max-bytes", str(size)]
+                ss_log = stack.enter_context((path / "ss.log").open("x")) if proto == "tcp" else None
+                flows.append((i, path, args, f"{host}:{port}", ss_log))
+                if capture:
+                    stack.enter_context(capture_wan(path, port, "tcp" if proto == "tcp" else "udp"))
+            stack.callback(stop, processes)
+            for i, path, args, _, _ in flows:
+                command = [*ns, f"b{i}", *bench, "receive", *args]
+                processes["receive", i] = launch(path, "receiver", command, env)
+            wait_ready("receiver", b"Listening on ")
+            for i, path, args, _, _ in flows:
+                command = [*ns, f"a{i}", *bench, "send", "--file", str(source), "--start-gate", str(gate), *args]
+                processes["send", i] = launch(path, "sender", command, env)
+            wait_ready("sender", b"Ready to send payload")
+            gate.touch(exist_ok=False)
+            deadline = time.monotonic() + timeout
+            sample_at = time.monotonic()
+            while True:
+                status = {key: p.poll() for key, p in processes.items()}
+                for (role, i), code in status.items():
+                    if code not in (0, None):
+                        raise RuntimeError(f"E5 flow-{i} {role} exited with {code}; see its log")
+                if all(code == 0 for code in status.values()):
+                    break
+                now = time.monotonic()
+                if now >= deadline:
+                    raise TimeoutError("E5 competing transfers exceeded the deadline")
+                if now >= sample_at:
+                    for i, _, _, address, ss_log in flows:
+                        if ss_log is not None and status["send", i] is None:
+                            stamp = time.time() - float(env["MURMUR_T0"])
+                            print(f"t={stamp:.6f}", file=ss_log, flush=True)
+                            lab_command([*ns, f"a{i}", "ss", "-Hnti", "state", "established", "dst", address],
+                                        5, stdout=ss_log)
+                    sample_at = now + 1
+                time.sleep(.05)
+    finally:
+        lab_command(["bash", "infra/teardown.sh"], 120)
+    result = e5.measure(directory, config, digest)
+    print(f"PASS: two verified {size}-byte flows; Jain fairness {result['jain_fairness']:.4f}", flush=True)
+    return result
+
+
 def supervise_linux_runner():
     """Keep cleanup alive even when the CLI process itself receives SIGKILL."""
     import ctypes
@@ -367,15 +447,19 @@ def main():
                        help="run one warm-up and three recorded trials in a new directory")
     modes.add_argument("--resume", type=Path, metavar="DIR", help="resume from DIR/run.json")
     modes.add_argument("--sweep", type=Path, metavar="DIR",
-                       help="start or continue a matrix in DIR (E1/E2 by default, or --e3)")
+                       help="start or continue an experiment matrix in DIR (E1/E2 by default)")
     parser.add_argument("--cell", choices=list(sweep.CELLS),
                         help="run one sweep condition for a pilot")
-    parser.add_argument("--e3", action="store_true", help="sweep TCP swarm and client-server scaling")
-    parser.add_argument("--e4", action="store_true", help="sweep single flows; --loss selects one loss level")
+    experiments = parser.add_mutually_exclusive_group()
+    experiments.add_argument("--e3", action="store_true", help="sweep TCP swarm and client-server scaling")
+    experiments.add_argument("--e4", action="store_true", help="sweep single flows; --loss selects one loss level")
+    experiments.add_argument("--e5", action="store_true", help="compare fairness of two concurrent flows")
     parser.add_argument("--count", type=int, choices=COUNTS, help="run both E3 modes at one peer count")
     parser.add_argument("--keep-seed-only", action="store_true",
                         help="keep one payload copy per verified sweep trial")
     args = parser.parse_args()
+    if args.e5 and (not args.sweep or args.cell or args.keep_seed_only):
+        parser.error("--e5 requires --sweep and runs the three transport pairings")
     if args.e4 and (not args.sweep or args.e3 or args.cell or args.keep_seed_only
                     or args.loss is not None and args.loss not in e4.LOSSES):
         parser.error("--e4 requires --sweep and supports --loss 0/1/2/5 for a pilot")
@@ -418,8 +502,9 @@ def main():
                     parser.exit(1, f"Sweep plotting requires Matplotlib in the Ubuntu project venv: {exc}\n")
                 sweep.execute(args.sweep.resolve(), args.cell, args.size or 8 * 1024**2,
                               args.timeout or 7200, not args.no_capture, git_sha,
-                              flow_trial if args.e4 else routed_trial, lab_peers(), keep_seed_only=args.keep_seed_only,
-                              e3=args.e3, count=args.count, flow=args.e4, flow_loss=args.loss)
+                              fairness_trial if args.e5 else flow_trial if args.e4 else routed_trial,
+                              lab_peers(), keep_seed_only=args.keep_seed_only, e3=args.e3, count=args.count,
+                              flow=args.e4, flow_loss=args.loss, fairness=args.e5)
                 return
             if args.resume:
                 run_dir = args.resume.resolve()
@@ -436,10 +521,11 @@ def main():
                 state = series.create(run_dir, config, args.timeout or 900, not args.no_capture,
                                       git_sha, series=bool(args.series))
             print(f"Run directory: {run_dir}", flush=True)
-            flow = state["config"].get("experiment") == "E4"
-            if flow and state["git_sha"] != git_sha:
-                raise ValueError("E4 checkpoint belongs to another Git revision")
-            series.execute(run_dir, state, git_sha, flow_trial if flow else routed_trial, timeout=args.timeout)
+            experiment = state["config"].get("experiment")
+            if experiment in ("E4", "E5") and state["git_sha"] != git_sha:
+                raise ValueError(f"{experiment} checkpoint belongs to another Git revision")
+            runner = {"E4": flow_trial, "E5": fairness_trial}.get(experiment, routed_trial)
+            series.execute(run_dir, state, git_sha, runner, timeout=args.timeout)
             if state["series"]:
                 print("PASS: one warm-up and three verified recorded runs; see run.json")
     except (OSError, RuntimeError, ValueError, subprocess.SubprocessError) as exc:

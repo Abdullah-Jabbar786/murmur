@@ -28,8 +28,7 @@ def ss_samples(text, algorithm):
         yield float(stamp), int(mss[1]) * int(cwnd[1]), float(rtt[1])
 
 
-def measure(directory, config, digest, epoch):
-    size = config["file_size"]
+def verified_flow_logs(directory, size, digest):
     logs = {}
     for side, role in (("send", "sender"), ("receive", "receiver")):
         path = directory / f"events-flow-{side}.jsonl"
@@ -44,6 +43,12 @@ def measure(directory, config, digest, epoch):
                 or result.get("sha256") != digest or result.get("bytes") != size):
             raise ValueError(f"unverified {role} result")
         logs[side] = rows
+    return logs
+
+
+def measure(directory, config, digest, epoch):
+    size = config["file_size"]
+    logs = verified_flow_logs(directory, size, digest)
     receiver = logs["receive"][-1]["result"]
     finish, = [row["t"] for row in logs["receive"] if row["type"] == "complete"]
     duration = receiver["seconds"]

@@ -349,6 +349,15 @@ The [64 MiB loss sweep](results/e4/README.md) completed on Ubuntu with
 import reconciled all 24 summary rows with the trial checkpoints and checked
 7,407 recorded sender samples, including 7,347 paired with a ping RTT.
 
+E4 merged in PR #47 (`4adb3b9`). The [E5 runner](experiments/README.md#e5-competing-flow-fairness)
+starts two verified flows on the shared WAN and measures Jain fairness and
+receiver goodput during their common transfer interval. The 8 MiB Ubuntu
+pilot and the final 64 MiB measurements remain pending. On Windows, all 41
+focused E4/E5 and flowbench tests passed. The full suite had 672 passes,
+six skips and one timeout in the ten-leecher MurmurTP discovery test with
+zero configured loss. The same case timed out on retry and on the merged
+E4 revision. Its cause remains open.
+
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
 | 1 | | | |

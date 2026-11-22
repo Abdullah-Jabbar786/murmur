@@ -4,8 +4,7 @@
 interface, without swarm, tracker or piece-selection dependencies. The public
 `run_once()` function accepts any Contract 2 endpoint and owns its cleanup.
 The CLI supports real TCP and final MurmurTP. Loopback is available to callers
-and tests in one process. This is the coding foundation for E4/E5, not completion
-of their routed experiments, competing-flow analysis or fairness results.
+and tests in one process. E4 and E5 use the same CLI for routed transfers.
 
 ## Quick verification
 
@@ -110,13 +109,14 @@ Summary contains `complete`, `bytes_up`, `bytes_down`, `retx`, `hash_fails`,
 follow a verified-completion event and still makes the final summary incomplete.
 Sampling failures fail the run rather than silently dropping metric errors.
 
-## Work still required for E4/E5
+## Routed measurements
 
-Routed bottleneck setup, synchronized competing-flow starts, Linux Reno/CUBIC
-and `ss -ti` evidence, steady-state interval selection, Jain fairness, independent
-warm-up/repetitions and analysis plots remain future work. Whole-transfer
-goodput is not a substitute for steady-state fairness. These JSONL logs are not
-automatically normalized into the A2.4 aggregation CSV yet.
+E4 measures the goodput of one transfer. See the [verified E4 measurements](../results/e4/README.md).
+E5 starts two flows together. A sender given `--start-gate FILE` waits after
+the receiver acknowledges the file header. The harness creates the file once
+both senders report readiness. Receiver rate events include cumulative payload
+bytes, and the first and last payload reads emit time markers. See the
+[E5 measurement interval and pilot](../experiments/README.md#e5-competing-flow-fairness).
 
 ## Recorded local verification
 

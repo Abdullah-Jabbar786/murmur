@@ -46,7 +46,7 @@ def _result(role, size, digest, started):
                 goodput_mbps=size * 8 / elapsed / 1_000_000, verified=True)
 
 
-async def send_file(connection, source, progress):
+async def send_file(connection, source, progress, before_payload=None):
     """Stream an existing file with bounded buffers; require receiver receipt."""
     with Path(source).open("rb") as stream:
         digest, size = hashlib.sha256(), 0
@@ -61,6 +61,8 @@ async def send_file(connection, source, progress):
         await connection.send(HEADER.pack(MAGIC, size, expected))
         if await read_exact(connection, 1) != b"\x01":
             raise FlowError("receiver did not acknowledge readiness")
+        if before_payload is not None:
+            await before_payload()
         started, sent, actual = time.monotonic(), 0, hashlib.sha256()
         while sent < size:
             chunk = stream.read(min(CHUNK, size - sent))
@@ -78,7 +80,7 @@ async def send_file(connection, source, progress):
         return _result("sender", size, expected, started)
 
 
-async def receive_stream(connection, max_bytes, progress):
+async def receive_stream(connection, max_bytes, progress, mark=None):
     """Hash and discard one length-delimited flow; acknowledge only verified data."""
     magic, size, expected = HEADER.unpack(await read_exact(connection, HEADER.size))
     if magic != MAGIC or not 0 < size <= max_bytes:
@@ -91,9 +93,13 @@ async def receive_stream(connection, max_bytes, progress):
         chunk = await connection.recv(limit)
         if not chunk or len(chunk) > limit:
             raise FlowError("premature EOF or oversized transport read")
+        if mark is not None and received == 0:
+            mark("payload_start")
         received += len(chunk)
         digest.update(chunk)
         progress.down += len(chunk)
+    if mark is not None:
+        mark("payload_end")
     if digest.digest() != expected:
         raise IntegrityError("received SHA-256 mismatch")
     result = _result("receiver", size, expected, started)
@@ -114,7 +120,8 @@ class _Progress:
         now = time.monotonic()
         elapsed = max(now - self._sample_at, 1e-9)
         self.log.emit("rate", up_bps=(self.up - self._previous_up) * 8 / elapsed,
-                      down_bps=(self.down - self._previous_down) * 8 / elapsed, role=self.role)
+                      down_bps=(self.down - self._previous_down) * 8 / elapsed, role=self.role,
+                      bytes_down=self.down)
         stats = self.connection.stats()
         self.log.emit("transport", peer=self.connection.peer_addr[0], role=self.role,
                       **{key: stats.get(key) for key in
@@ -129,7 +136,7 @@ class _Progress:
 
 async def run_once(transport, address, *, source=None, timeout=120.0,
                    max_bytes=DEFAULT_LIMIT, event_log=None, sample_interval=1.0,
-                   on_listening=None):
+                   on_listening=None, before_payload=None):
     """Own and close one endpoint. source=None receives; otherwise send that file.
 
     timeout covers setup, transfer and graceful close. Samples and summaries use
@@ -151,8 +158,11 @@ async def run_once(transport, address, *, source=None, timeout=120.0,
             event_log.emit("join", role=progress.role, proto=connection.stats().get("proto"))
 
         async def transfer():
-            report = (await receive_stream(connection, max_bytes, progress) if source is None
-                      else await send_file(connection, source, progress))
+            def mark(label):
+                event_log.emit("marker", label=label, role="receiver")
+
+            report = (await receive_stream(connection, max_bytes, progress, mark if event_log else None)
+                      if source is None else await send_file(connection, source, progress, before_payload))
             if event_log is not None:
                 event_log.emit("complete", **report)
             await connection.close()
@@ -209,9 +219,15 @@ async def _cli(args):
     if args.command == "send" and port == 0:
         raise ValueError("sender requires a nonzero destination port")
     transport = create_transport(config)
+    async def await_gate():
+        print("Ready to send payload", flush=True)
+        while not args.start_gate.is_file():
+            await asyncio.sleep(.02)
+
     with EventLog(f"flow-{args.command}", args.run_dir) as log:
         result = await run_once(transport, (args.host, port), source=args.file,
             timeout=args.timeout, max_bytes=args.max_bytes, event_log=log,
+            before_payload=await_gate if getattr(args, "start_gate", None) else None,
             on_listening=lambda address: print(f"Listening on {address[0]}:{address[1]}", flush=True))
     print(json.dumps(result, sort_keys=True), flush=True)
 
@@ -230,6 +246,7 @@ def main():
         sub.add_argument("--max-bytes", type=int, default=DEFAULT_LIMIT)
         if command == "send":
             sub.add_argument("--file", type=Path, required=True)
+            sub.add_argument("--start-gate", type=Path, help="wait for this file after receiver readiness")
         else:
             sub.set_defaults(file=None)
     args = parser.parse_args()

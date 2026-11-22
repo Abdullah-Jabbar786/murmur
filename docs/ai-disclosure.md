@@ -1,5 +1,10 @@
 # AI-use disclosure
 
+E5. Codex implemented the shared start signal, receiver byte counters, routed
+pairings and fairness report. Windows tests exercise real TCP and MurmurTP
+transfers, the common time window, asymmetric rates, retry handling and
+report generation. Routed Ubuntu measurements are pending.
+
 E4. Codex implemented the routed single-flow sweep and its reporting using
 the existing flowbench and checkpoint runner. Local fixtures exercise socket
 sample parsing, RTT pairing, integrity checks, resume and plot generation.

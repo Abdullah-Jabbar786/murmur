@@ -20,3 +20,4 @@ were measured on Ubuntu.
 For E3, start with the [five-leecher TCP pilot](../experiments/README.md#e3-scaling-experiment).
 The [final E3 results](../results/e3/README.md) cover four peer counts.
 For E4, follow the [single-flow pilot and full sweep](../experiments/README.md#e4-single-flow-transport-comparison).
+For E5, run the [two-flow fairness pilot](../experiments/README.md#e5-competing-flow-fairness) before the 64 MiB sweep.

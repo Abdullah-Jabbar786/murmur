@@ -412,3 +412,49 @@ trials per transport. All six summary rows report three observations.
 Reno had the highest receiver goodput in this pilot. MurmurTP's smoothed
 RTT was closest to the concurrent ping observations. The [64 MiB results](../results/e4/README.md)
 extend this comparison to 1%, 2% and 5% configured loss.
+
+## E5 competing-flow fairness
+
+Two senders share the same 10 Mbit/s WAN in the same direction. Flow 1
+goes from a1 to b1 on port 6901, and flow 2 from a2 to b2 on port 6902.
+The pairings, in flow order, are MurmurTP/TCP CUBIC, MurmurTP/MurmurTP
+and TCP CUBIC/TCP CUBIC. Configured delay is 10 ms each way, with 0% loss.
+Both connections must be ready before the harness releases either payload.
+Each receiver checks byte count and SHA-256. Each flow has a separate
+filtered WAN capture. TCP senders also log socket snapshots with `ss`.
+
+From the Ubuntu repository root, run the pilot with 8 MiB per flow.
+
+```bash
+sudo .venv/bin/python experiments/run.py --e5 --sweep results/e5-work/pilot --size 8MiB
+cat results/e5-work/pilot/summary.csv
+```
+
+The pilot and final sweep each contain one warm-up and three recorded trials
+per pairing. A complete summary contains nine rows with three observations
+and zero missing values in each. After checking the pilot, run the final
+sweep with 64 MiB per flow. To pause, press Ctrl+C once and wait for the
+prompt. Repeat the same command at the same Git revision to resume.
+
+```bash
+sudo make experiments-e5
+cat results/e5-work/final/summary.csv
+```
+
+For each trial, the common interval starts when the second receiver sees
+payload and ends when the first receiver finishes. We use the middle 60%
+of this interval as the steady-state measurement window. Trimming 20% at
+each end limits startup and finish effects. It does not establish that the
+flows reached equilibrium. At least two samples from each receiver must fall
+inside this window. The harness linearly interpolates cumulative received
+bytes at both boundaries. Each flow's goodput is its delivered bits divided
+by the same duration. For rates x and y, Jain's index is
+`(x + y)² / (2 × (x² + y²))`. Equal rates score 1, and one stalled flow
+scores 0.5. Trials with zero bytes delivered by both flows in the window
+cannot yield a fairness score.
+
+`metrics.csv` includes warm-ups. `summary.csv` and `E5-fairness.png`
+show recorded-trial means and sample standard deviations for fairness and
+each flow's goodput. `receiver-samples.csv` contains the recorded byte
+counters. Each cell's `run.json` stores its trial windows, interpolated byte
+counts, and verification digest so the calculation can be reproduced.
