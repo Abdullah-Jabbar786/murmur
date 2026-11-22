@@ -47,6 +47,37 @@ on an existing VM.
 
 ## Reproduce all five experiments
 
+### M4.2 checkout verification
+
+Majid followed the setup instructions in a new `~/murmur-reproduce` clone
+at revision `3c2348a` on his existing Ubuntu 24.04.3 LTS VM. The new virtual
+environment passed 677 tests with two skips in 300.04 seconds, with
+`MURMUR_REQUIRE_TSHARK=1`. The topology checks passed, including resizing
+to 20 leechers and restoring the original namespace inventory. The Make dry
+run printed E1/E2, E3, E4 and E5 in order.
+
+The shaping test required three attempts. The first measured reverse WAN
+goodput at 7.20 Mbit/s, below the 8 Mbit/s acceptance threshold. The second
+passed both WAN directions at 9.09 and 9.16 Mbit/s, but measured seed-to-LAN
+goodput at 7.48 Mbit/s. A separate 20-second seed diagnostic measured
+8.51 Mbit/s receiver goodput, with the configured 10 Mbit/s TBF and 66 queue
+drops. The third complete shaping test reported PASS, including reapply and
+clear. The cause of the short-test variability remains unresolved.
+
+The 8 MiB E1 TCP pilot at 0% configured loss and 20 ms RTT passed its warm-up
+and three recorded trials on their first attempts. Each verified ten files
+and its WAN capture, removed the topology and retained the verified seed.
+The supplied summary row reports mean distribution time 30.642 seconds,
+sample standard deviation 2.458439 seconds, minimum 29.098 and maximum 33.477,
+with three observations and zero missing. Reports are under
+`results/reproduce-work/pilot/` in that checkout.
+
+This evidence covers a fresh checkout on an existing VM. A fresh-VM test
+and execution of the combined 140-trial command remain pending. The published
+E1–E5 results came from the individual experiment runs.
+
+### Full sweep command
+
 From the repository root, check available space and run the full sweep.
 
 ```bash

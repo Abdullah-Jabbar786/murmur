@@ -366,7 +366,14 @@ and a [fresh Ubuntu reproduction guide](docs/reproduce.md). The 35 published
 conditions have three recorded trials each. Windows GNU Make checks confirmed
 stage order under parallel Make, stopping on failure, path and size overrides,
 and standalone target defaults. The focused experiment tests passed 38 cases
-with one Linux-only skip. Fresh-VM acceptance remains pending.
+with one Linux-only skip. Majid verified a new checkout at `3c2348a` on his
+existing Ubuntu 24.04.3 VM. Pytest reported 677 passed and two skipped.
+Topology checks passed, and shaping passed on its third attempt following
+two throughput failures. The E1 TCP pilot verified all four trials, with
+mean recorded distribution time 30.642 seconds and sample SD 2.458439 seconds.
+The [reproduction record](docs/reproduce.md#m42-checkout-verification)
+retains the failed measurements and diagnostic. Fresh-VM acceptance and a
+complete run of the combined command remain pending.
 
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|

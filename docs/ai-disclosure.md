@@ -2,7 +2,11 @@
 
 M4.2. Codex connected the existing experiment targets in the Makefile,
 checked the published summary row counts, and wrote the fresh Ubuntu setup
-and pilot instructions. Fresh-VM results are pending.
+and pilot instructions. Majid supplied the results from a new checkout on
+his existing Ubuntu VM. Codex recorded the 677 passing tests, two skips,
+topology acceptance, two shaping failures, longer seed diagnostic and eventual
+shaping PASS, plus the four verified E1 pilot trials and supplied summary row.
+Fresh-VM results are pending.
 
 E5. Codex implemented the shared start signal, receiver byte counters, routed
 pairings and fairness report. Windows tests exercise real TCP and MurmurTP
