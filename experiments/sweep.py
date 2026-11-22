@@ -6,7 +6,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from core.config import load_config
-from experiments import scaling, series
+from experiments import e4, scaling, series
 from experiments.aggregate import INPUT_FIELDS, aggregate, write_summary
 from experiments.plot import plot_summary
 from experiments.payloads import keep_seed
@@ -63,20 +63,26 @@ def report(directory, cells, peers, sweep_id):
         experiment = cell.split("-", 1)[0]
         size = config["file_size"]
         cell_peers = scaling.lab_peers(config["leechers"]) if experiment == "E3" else peers
-        variant = config["transport"] + "-" + config["mode"].replace("_", "-")
+        flow = experiment == "E4"
+        variant = cell.split("-")[1] if flow else config["transport"] + "-" + config["mode"].replace("_", "-")
         for trial in state["trials"]:
             attempt = trial["attempts"][-1]
-            if attempt["status"] != "passed" or attempt["result"]["verified_leechers"] != len(cell_peers) - 1:
+            if attempt["status"] != "passed":
                 raise ValueError(f"{cell}/{trial['name']}: missing verified trial")
             path = directory / cell / attempt["directory"]
-            metrics = list(trial_metrics(path, cell_peers, size))
+            if flow:
+                metrics = [("all", key, attempt["result"][key]) for key in ("goodput_mbps", "rtt_error_ms")]
+            else:
+                if attempt["result"]["verified_leechers"] != len(cell_peers) - 1:
+                    raise ValueError(f"{cell}/{trial['name']}: missing verified trial")
+                metrics = list(trial_metrics(path, cell_peers, size))
             if experiment == "E3":
                 metrics.extend(scaling.metrics(attempt["result"], config["mode"]))
             for subject, metric, value in metrics:
                 rows.append(dict(run_id=f"{sweep_id}/{cell}/{attempt['directory']}",
                                  experiment=experiment, variant=variant, subject=subject,
                                  loss_pct=config["wan_loss_pct"], rtt_ms=config["wan_rtt_ms"],
-                                 leechers=len(cell_peers)-1, file_bytes=size,
+                                 leechers=0 if flow else len(cell_peers)-1, file_bytes=size,
                                  data_kind="measured", seed=state["config"]["seed"],
                                  warmup=str(trial["name"] == "warmup").lower(),
                                  metric=metric, value=value))
@@ -90,7 +96,7 @@ def report(directory, cells, peers, sweep_id):
     stats = aggregate(raw)
     write_summary(stats, summary)
     for experiment in sorted({r["experiment"] for r in rows}):
-        x = {"E1": "loss_pct", "E2": "rtt_ms", "E3": "leechers"}[experiment]
+        x = {"E1": "loss_pct", "E2": "rtt_ms", "E3": "leechers", "E4": "loss_pct"}[experiment]
         plots = [("distribution_time_s", "all")]
         if experiment == "E1":
             plots.append(("goodput_mbps", "all"))
@@ -98,9 +104,13 @@ def report(directory, cells, peers, sweep_id):
                 plots.append(("retx", "all"))
         elif experiment == "E2":
             plots.extend(("goodput_mbps", ip) for name, ip in peers.items() if name != "seed")
-        else:
+        elif experiment == "E3":
             scaling.write_comparison(directory, rows)
             plots.extend([("wan_bytes", "all"), ("seed_upload_share", "all")])
+        else:
+            plots = [("goodput_mbps", "all"), ("rtt_error_ms", "all")]
+            e4.export_traces(directory, cells)
+            e4.plot_traces(directory, cells)
         for metric, subject in plots:
             plot_summary(summary, directory / f"{experiment}-{metric}-{subject}.png",
                          experiment=experiment, metric=metric, x=x, subject=subject)
@@ -108,12 +118,16 @@ def report(directory, cells, peers, sweep_id):
 
 
 def execute(directory: Path, cell, size, timeout, capture, git_sha, run_trial, peers,
-            *, keep_seed_only=False, e3=False, count=None):
-    if e3:
+            *, keep_seed_only=False, e3=False, count=None, flow=False, flow_loss=None):
+    if flow:
+        cells = [f"E4-{variant}-loss{loss}" for loss in e4.LOSSES if flow_loss in (None, loss)
+                 for variant in e4.VARIANTS]
+    elif e3:
         cells = [name for name, (_, n) in scaling.CELLS.items() if count is None or n == count]
     else:
         cells = [cell] if cell else list(CELLS)
-    settings = dict(version="E3" if e3 else "M4.1", cells=cells, file_size=size, capture=capture, git_sha=git_sha)
+    version = cells[0].split("-")[0] if (e3 or flow) else "M4.1"
+    settings = dict(version=version, cells=cells, file_size=size, capture=capture, git_sha=git_sha)
     settings["keep_seed_only"] = keep_seed_only
     if directory.exists():
         marker = directory / "run.json"
@@ -129,7 +143,12 @@ def execute(directory: Path, cell, size, timeout, capture, git_sha, run_trial, p
         series.save(directory, state)
     for name in cells:
         mode, cell_peers = "swarm", peers
-        if e3:
+        if flow:
+            mode = "single_flow"
+            _, variant, loss_label = name.split("-")
+            protocol = "murmurtp" if variant == "murmurtp" else "tcp"
+            loss, rtt = int(loss_label[4:]), 20
+        elif e3:
             mode, n = scaling.CELLS[name]
             protocol, loss, rtt = "tcp", 0, 20
             cell_peers = scaling.lab_peers(n)
@@ -139,6 +158,10 @@ def execute(directory: Path, cell, size, timeout, capture, git_sha, run_trial, p
                                             wan_loss_pct=loss, wan_rtt_ms=rtt, seed=0))
         if e3:
             config["leechers"] = n
+        if flow:
+            config["experiment"] = "E4"
+            if protocol == "tcp":
+                config["tcp_congestion_control"] = variant
         path = directory / name
         print(f"Cell {name} in {path}", flush=True)
         if path.exists():

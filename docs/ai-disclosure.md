@@ -1,5 +1,15 @@
 # AI-use disclosure
 
+E4. Codex implemented the routed single-flow sweep and its reporting using
+the existing flowbench and checkpoint runner. Local fixtures exercise socket
+sample parsing, RTT pairing, integrity checks, resume and plot generation.
+Majid ran the routed Ubuntu pilot. Codex checked the trial completions
+and recorded the goodput and RTT differences from the supplied summary.
+Majid completed the resumed 64 MiB sweep. Codex summarized the 24 metric
+rows from its terminal output. Codex imported the 22 exported files, checked
+the checkpoint revision, recomputed the summary statistics and paired RTT
+differences, and checked that all six PNGs decoded.
+
 E3. Codex extended the sweep runner to vary active peer counts and exercise
 the existing client-server mode. Codex added tests for mode selection, WAN
 counter deltas, upload share, resumable reporting and signed WAN savings.

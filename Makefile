@@ -1,4 +1,4 @@
-.PHONY: setup test topo topo-down test-topo netem netem-clear test-netem experiments experiments-e3
+.PHONY: setup test topo topo-down test-topo netem netem-clear test-netem experiments experiments-e3 experiments-e4
 
 LEECHERS_PER_LAN ?= 5
 export ARGS
@@ -37,3 +37,7 @@ experiments:
 E3_DIR ?= results/e3-work/final
 experiments-e3:
 	.venv/bin/python experiments/run.py --e3 --sweep "$(E3_DIR)" --size "$(SIZE)" --keep-seed-only
+
+E4_DIR ?= results/e4-work/final
+experiments-e4:
+	.venv/bin/python experiments/run.py --e4 --sweep "$(E4_DIR)" --size "$(SIZE)"

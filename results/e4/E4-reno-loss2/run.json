@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "series": true,
+  "git_sha": "a95279a187937cd85b15a6605e05ed3055862da8",
+  "config": {
+    "transport": "tcp",
+    "file_size": 67108864,
+    "piece_size": 262144,
+    "block_size": 16384,
+    "tracker_url": "http://10.0.3.10:8000/announce",
+    "tracker_port": 8000,
+    "peer_port_tcp": 6881,
+    "peer_port_udp": 6882,
+    "unchoke_slots": 4,
+    "optimistic_unchoke_interval": 30,
+    "choke_interval": 10,
+    "keepalive_interval": 3,
+    "pipelining_depth": 16,
+    "mode": "single_flow",
+    "wan_loss_pct": 2,
+    "wan_rtt_ms": 20,
+    "seed": 0,
+    "experiment": "E4",
+    "tcp_congestion_control": "reno"
+  },
+  "timeout": 7200,
+  "capture": true,
+  "created": "2026-11-21T20:50:12+00:00",
+  "status": "complete",
+  "measurements": [
+    "recorded-1/attempt-1",
+    "recorded-2/attempt-1",
+    "recorded-3/attempt-1"
+  ],
+  "trials": [
+    {
+      "name": "warmup",
+      "attempts": [
+        {
+          "directory": "warmup/attempt-1",
+          "git_sha": "a95279a187937cd85b15a6605e05ed3055862da8",
+          "timeout": 7200,
+          "started": "2026-11-21T20:50:12+00:00",
+          "status": "passed",
+          "ended": "2026-11-21T20:52:53+00:00",
+          "result": {
+            "file_bytes": 67108864,
+            "sha256": "f1890c1ca63eae6fceb8ad36757df9660f4af30e73255e6816566b8a3aac404a",
+            "goodput_mbps": 3.3992681008681016,
+            "rtt_error_ms": 19.01975974025974,
+            "samples": 154,
+            "paired_samples": 154
+          }
+        }
+      ]
+    },
+    {
+      "name": "recorded-1",
+      "attempts": [
+        {
+          "directory": "recorded-1/attempt-1",
+          "git_sha": "a95279a187937cd85b15a6605e05ed3055862da8",
+          "timeout": 7200,
+          "started": "2026-11-21T20:52:53+00:00",
+          "status": "passed",
+          "ended": "2026-11-21T20:55:36+00:00",
+          "result": {
+            "file_bytes": 67108864,
+            "sha256": "f1890c1ca63eae6fceb8ad36757df9660f4af30e73255e6816566b8a3aac404a",
+            "goodput_mbps": 3.348493437490071,
+            "rtt_error_ms": 11.778070512820513,
+            "samples": 156,
+            "paired_samples": 156
+          }
+        }
+      ]
+    },
+    {
+      "name": "recorded-2",
+      "attempts": [
+        {
+          "directory": "recorded-2/attempt-1",
+          "git_sha": "a95279a187937cd85b15a6605e05ed3055862da8",
+          "timeout": 7200,
+          "started": "2026-11-21T20:55:36+00:00",
+          "status": "passed",
+          "ended": "2026-11-21T20:58:20+00:00",
+          "result": {
+            "file_bytes": 67108864,
+            "sha256": "f1890c1ca63eae6fceb8ad36757df9660f4af30e73255e6816566b8a3aac404a",
+            "goodput_mbps": 3.3321773401228034,
+            "rtt_error_ms": 14.938883870967743,
+            "samples": 156,
+            "paired_samples": 155
+          }
+        }
+      ]
+    },
+    {
+      "name": "recorded-3",
+      "attempts": [
+        {
+          "directory": "recorded-3/attempt-1",
+          "git_sha": "a95279a187937cd85b15a6605e05ed3055862da8",
+          "timeout": 7200,
+          "started": "2026-11-21T20:58:20+00:00",
+          "status": "passed",
+          "ended": "2026-11-21T21:01:09+00:00",
+          "result": {
+            "file_bytes": 67108864,
+            "sha256": "f1890c1ca63eae6fceb8ad36757df9660f4af30e73255e6816566b8a3aac404a",
+            "goodput_mbps": 3.2389929592426667,
+            "rtt_error_ms": 11.555415094339622,
+            "samples": 161,
+            "paired_samples": 159
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -19,7 +19,7 @@ if __package__ in (None, ""):
 from core.config import load_config
 from core.transports import transport_port
 from dashboard.live import RunLog
-from experiments import series, sweep
+from experiments import e4, series, sweep
 from experiments.payloads import sha256
 from experiments.scaling import COUNTS, lab_peers, wan_delta
 from peer.metadata import generate_dataset, parse_size
@@ -261,6 +261,69 @@ def routed_trial(directory, config, timeout, capture):
     return result
 
 
+def flow_trial(directory, config, timeout, capture):
+    """Run one verified bulk flow from LAN A to LAN B."""
+    size = config["file_size"]
+    source = directory / "payload.bin"
+    generate_dataset(source, directory / "metadata.json", size=size, seed=config["seed"])
+    digest = sha256(source)
+    config_path = directory / "config.json"
+    config_path.write_text(json.dumps(config), encoding="utf-8")
+    tcp = config["transport"] == "tcp"
+    port = transport_port(config)
+    ns = ["bash", "infra/run_in_ns.sh"]
+    bench = [sys.executable, "-m", "murmurtp.flowbench"]
+    options = ["--host", "10.0.2.11", "--port", str(port), "--config", str(config_path),
+               "--run-dir", str(directory), "--timeout", str(timeout), "--max-bytes", str(size)]
+    try:
+        lab_command(["bash", "infra/topology.sh", "--leechers-per-lan", "1"], 120)
+        lab_command(["bash", "infra/netem.sh", "apply", "--delay", "10",
+                     "--loss", str(config["wan_loss_pct"]), "--rate", "10"], 60)
+        epoch = time.time()
+        env = dict(os.environ, LC_ALL="C", MURMUR_T0=str(epoch), PYTHONUNBUFFERED="1")
+        with ExitStack() as stack:
+            if capture:
+                stack.enter_context(capture_wan(directory, port, "tcp" if tcp else "udp"))
+            processes = {}
+            stack.callback(stop, processes)
+            receiver = launch(directory, "receiver", ns + ["b1"] + bench + ["receive"] + options, env)
+            processes["receiver"] = receiver
+            deadline = time.monotonic() + min(30, timeout)
+            while b"Listening on " not in (directory / "receiver.log").read_bytes():
+                if receiver.poll() is not None or time.monotonic() >= deadline:
+                    raise RuntimeError("flow receiver did not start; see receiver.log")
+                time.sleep(.05)
+            processes["ping"] = launch(directory, "ping", ns + ["a1", "ping", "-D", "-n",
+                                       "-i", "1", "-W", "2", "10.0.2.11"], env)
+            sender = launch(directory, "sender", ns + ["a1"] + bench + ["send", "--file", str(source)] + options, env)
+            processes["sender"] = sender
+            deadline = time.monotonic() + timeout
+            next_sample = time.monotonic()
+            with (directory / "ss.log").open("x", encoding="utf-8") as ss_log:
+                while sender.poll() is None or receiver.poll() is None:
+                    for name in ("receiver", "sender", "ping"):
+                        if processes[name].poll() not in (None, 0):
+                            raise RuntimeError(f"{name} failed; see {name}.log")
+                    now = time.monotonic()
+                    if now >= deadline:
+                        raise TimeoutError("E4 flow exceeded the trial deadline")
+                    if tcp and now >= next_sample:
+                        print(f"t={time.time()-epoch:.6f}", file=ss_log, flush=True)
+                        lab_command(ns + ["a1", "ss", "-Hnti", "state", "established",
+                                          "dst", f"10.0.2.11:{port}"], 5, stdout=ss_log)
+                        next_sample = now + 1
+                    time.sleep(.05)
+            for name in ("sender", "receiver"):
+                if processes[name].returncode != 0:
+                    raise RuntimeError(f"{name} failed; see {name}.log")
+    finally:
+        lab_command(["bash", "infra/teardown.sh"], 120)
+    result = e4.measure(directory, config, digest, epoch)
+    print(f"PASS: verified {size} bytes, {result['samples']} sender samples, "
+          f"{result['goodput_mbps']:.3f} Mbit/s receiver goodput", flush=True)
+    return result
+
+
 def supervise_linux_runner():
     """Keep cleanup alive even when the CLI process itself receives SIGKILL."""
     import ctypes
@@ -308,10 +371,14 @@ def main():
     parser.add_argument("--cell", choices=list(sweep.CELLS),
                         help="run one sweep condition for a pilot")
     parser.add_argument("--e3", action="store_true", help="sweep TCP swarm and client-server scaling")
+    parser.add_argument("--e4", action="store_true", help="sweep single flows; --loss selects one loss level")
     parser.add_argument("--count", type=int, choices=COUNTS, help="run both E3 modes at one peer count")
     parser.add_argument("--keep-seed-only", action="store_true",
                         help="keep one payload copy per verified sweep trial")
     args = parser.parse_args()
+    if args.e4 and (not args.sweep or args.e3 or args.cell or args.keep_seed_only
+                    or args.loss is not None and args.loss not in e4.LOSSES):
+        parser.error("--e4 requires --sweep and supports --loss 0/1/2/5 for a pilot")
     if args.e3 and (not args.sweep or args.cell):
         parser.error("--e3 requires --sweep and selects its cells by --count")
     if args.count is not None and not args.e3:
@@ -322,7 +389,7 @@ def main():
         parser.error("--cell requires --sweep")
     if args.keep_seed_only and not args.sweep:
         parser.error("--keep-seed-only requires --sweep")
-    if args.sweep and (args.transport or args.loss is not None or args.rtt_ms is not None):
+    if args.sweep and (args.transport or (args.loss is not None and not args.e4) or args.rtt_ms is not None):
         parser.error("--sweep defines transport, loss and RTT for each cell")
     if args.resume and (args.transport or args.loss is not None or args.rtt_ms is not None
                         or args.size is not None or args.no_capture):
@@ -351,8 +418,8 @@ def main():
                     parser.exit(1, f"Sweep plotting requires Matplotlib in the Ubuntu project venv: {exc}\n")
                 sweep.execute(args.sweep.resolve(), args.cell, args.size or 8 * 1024**2,
                               args.timeout or 7200, not args.no_capture, git_sha,
-                              routed_trial, lab_peers(), keep_seed_only=args.keep_seed_only,
-                              e3=args.e3, count=args.count)
+                              flow_trial if args.e4 else routed_trial, lab_peers(), keep_seed_only=args.keep_seed_only,
+                              e3=args.e3, count=args.count, flow=args.e4, flow_loss=args.loss)
                 return
             if args.resume:
                 run_dir = args.resume.resolve()
@@ -369,7 +436,10 @@ def main():
                 state = series.create(run_dir, config, args.timeout or 900, not args.no_capture,
                                       git_sha, series=bool(args.series))
             print(f"Run directory: {run_dir}", flush=True)
-            series.execute(run_dir, state, git_sha, routed_trial, timeout=args.timeout)
+            flow = state["config"].get("experiment") == "E4"
+            if flow and state["git_sha"] != git_sha:
+                raise ValueError("E4 checkpoint belongs to another Git revision")
+            series.execute(run_dir, state, git_sha, flow_trial if flow else routed_trial, timeout=args.timeout)
             if state["series"]:
                 print("PASS: one warm-up and three verified recorded runs; see run.json")
     except (OSError, RuntimeError, ValueError, subprocess.SubprocessError) as exc:

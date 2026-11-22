@@ -16,5 +16,7 @@ For E1/E2, run the [8 MiB pilot and final sweep](../experiments/README.md#m41-lo
 For a space-constrained VM, use the compact pilot command in that guide and
 measure its disk usage before choosing the final output location.
 The [final E1/E2 distribution times](../experiments/README.md#final-64-mib-distribution-times)
-were measured on Ubuntu. E3–E5 measurements are pending.
+were measured on Ubuntu.
 For E3, start with the [five-leecher TCP pilot](../experiments/README.md#e3-scaling-experiment).
+The [final E3 results](../results/e3/README.md) cover four peer counts.
+For E4, follow the [single-flow pilot and full sweep](../experiments/README.md#e4-single-flow-transport-comparison).
