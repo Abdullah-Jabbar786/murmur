@@ -361,6 +361,13 @@ six skips and one timeout in the ten-leecher MurmurTP discovery test with
 zero configured loss. The same case timed out on retry and on the merged
 E4 revision. Its cause remains open.
 
+E5 merged in PR #48 (`35e205f`). M4.2 adds a sequential E1–E5 Make target
+and a [fresh Ubuntu reproduction guide](docs/reproduce.md). The 35 published
+conditions have three recorded trials each. Windows GNU Make checks confirmed
+stage order under parallel Make, stopping on failure, path and size overrides,
+and standalone target defaults. The focused experiment tests passed 38 cases
+with one Linux-only skip. Fresh-VM acceptance remains pending.
+
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
 | 1 | | | |

@@ -200,7 +200,7 @@ larger Linux filesystem set `SWEEP_DIR=/absolute/path/to/a/new/directory`
 on the make command. When ready, run:
 
 ```bash
-sudo make experiments
+sudo make experiments-e1-e2
 ```
 
 For a smaller disk, add `--keep-seed-only` to a new sweep. After each
@@ -226,7 +226,7 @@ df -h .
 With four first-attempt passes, expect four seed paths of 8,388,608 bytes
 each and three recorded observations. Compare the directory size and free
 space before scheduling the larger matrix. The compact final command is
-`sudo make experiments KEEP_SEED_ONLY=1 SWEEP_DIR=results/m41/final-compact`.
+`sudo make experiments-e1-e2 KEEP_SEED_ONLY=1 SWEEP_DIR=results/m41/final-compact`.
 
 M4.1 covers six E1 cells (TCP/MurmurTP × 0/2/5% WAN loss per direction at
 20 ms RTT) and six E2 cells (TCP/MurmurTP × 20/100/200 ms configured RTT

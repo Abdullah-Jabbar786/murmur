@@ -14,6 +14,7 @@ results/raw_tmp/
 /results/e3-work/
 /results/e4-work/
 /results/e5-work/
+/results/reproduce-work/
 results/**/*.jsonl
 results/**/*.pcap
 .pytest_cache/

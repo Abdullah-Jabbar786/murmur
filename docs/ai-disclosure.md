@@ -1,5 +1,9 @@
 # AI-use disclosure
 
+M4.2. Codex connected the existing experiment targets in the Makefile,
+checked the published summary row counts, and wrote the fresh Ubuntu setup
+and pilot instructions. Fresh-VM results are pending.
+
 E5. Codex implemented the shared start signal, receiver byte counters, routed
 pairings and fairness report. Windows tests exercise real TCP and MurmurTP
 transfers, the common time window, asymmetric rates, retry handling and
