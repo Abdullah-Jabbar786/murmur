@@ -1,5 +1,11 @@
 # AI-use disclosure
 
+S5 report draft. Codex synthesized the existing design documentation,
+published E1–E5 results and reproduction record into `docs/report.md`,
+checked local evidence links and compared reported tables with the existing
+result summaries. No new experimental measurements were generated. Majid's
+review of the report and outstanding acceptance work remain pending.
+
 M4.2. Codex connected the existing experiment targets in the Makefile,
 checked the published summary row counts, and wrote the fresh Ubuntu setup
 and pilot instructions. Majid supplied the results from a new checkout on
