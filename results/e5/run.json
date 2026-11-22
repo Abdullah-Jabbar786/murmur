@@ -1,0 +1,13 @@
+{
+  "version": "E5",
+  "cells": [
+    "E5-murmurtp-tcp",
+    "E5-murmurtp-murmurtp",
+    "E5-tcp-tcp"
+  ],
+  "file_size": 67108864,
+  "capture": true,
+  "git_sha": "9bf806cd2bff350159612e8f9d1ac29953905a91",
+  "keep_seed_only": false,
+  "sweep_id": "5d8f78434cf0468fbb7806d699273813"
+}

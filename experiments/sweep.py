@@ -6,7 +6,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from core.config import load_config
-from experiments import e4, scaling, series
+from experiments import e4, e5, scaling, series
 from experiments.aggregate import INPUT_FIELDS, aggregate, write_summary
 from experiments.plot import plot_summary
 from experiments.payloads import keep_seed
@@ -63,14 +63,21 @@ def report(directory, cells, peers, sweep_id):
         experiment = cell.split("-", 1)[0]
         size = config["file_size"]
         cell_peers = scaling.lab_peers(config["leechers"]) if experiment == "E3" else peers
-        flow = experiment == "E4"
-        variant = cell.split("-")[1] if flow else config["transport"] + "-" + config["mode"].replace("_", "-")
+        flow = experiment in ("E4", "E5")
+        variant = config.get("pairing") if experiment == "E5" else cell.split("-")[1]
+        if not flow:
+            variant = config["transport"] + "-" + config["mode"].replace("_", "-")
         for trial in state["trials"]:
             attempt = trial["attempts"][-1]
             if attempt["status"] != "passed":
                 raise ValueError(f"{cell}/{trial['name']}: missing verified trial")
             path = directory / cell / attempt["directory"]
-            if flow:
+            if experiment == "E5":
+                result = attempt["result"]
+                metrics = [("all", "jain_fairness", result["jain_fairness"])]
+                metrics.extend((f"flow-{i}", "goodput_mbps", f["goodput_mbps"])
+                               for i, f in enumerate(result["flows"], 1))
+            elif flow:
                 metrics = [("all", key, attempt["result"][key]) for key in ("goodput_mbps", "rtt_error_ms")]
             else:
                 if attempt["result"]["verified_leechers"] != len(cell_peers) - 1:
@@ -96,6 +103,9 @@ def report(directory, cells, peers, sweep_id):
     stats = aggregate(raw)
     write_summary(stats, summary)
     for experiment in sorted({r["experiment"] for r in rows}):
+        if experiment == "E5":
+            e5.report(directory, cells, stats)
+            continue
         x = {"E1": "loss_pct", "E2": "rtt_ms", "E3": "leechers", "E4": "loss_pct"}[experiment]
         plots = [("distribution_time_s", "all")]
         if experiment == "E1":
@@ -118,15 +128,17 @@ def report(directory, cells, peers, sweep_id):
 
 
 def execute(directory: Path, cell, size, timeout, capture, git_sha, run_trial, peers,
-            *, keep_seed_only=False, e3=False, count=None, flow=False, flow_loss=None):
-    if flow:
+            *, keep_seed_only=False, e3=False, count=None, flow=False, flow_loss=None, fairness=False):
+    if fairness:
+        cells = [f"E5-{pair}" for pair in e5.PAIRINGS]
+    elif flow:
         cells = [f"E4-{variant}-loss{loss}" for loss in e4.LOSSES if flow_loss in (None, loss)
                  for variant in e4.VARIANTS]
     elif e3:
         cells = [name for name, (_, n) in scaling.CELLS.items() if count is None or n == count]
     else:
         cells = [cell] if cell else list(CELLS)
-    version = cells[0].split("-")[0] if (e3 or flow) else "M4.1"
+    version = cells[0].split("-")[0] if (e3 or flow or fairness) else "M4.1"
     settings = dict(version=version, cells=cells, file_size=size, capture=capture, git_sha=git_sha)
     settings["keep_seed_only"] = keep_seed_only
     if directory.exists():
@@ -143,7 +155,10 @@ def execute(directory: Path, cell, size, timeout, capture, git_sha, run_trial, p
         series.save(directory, state)
     for name in cells:
         mode, cell_peers = "swarm", peers
-        if flow:
+        if fairness:
+            mode = "competing_flows"
+            protocol, loss, rtt = name.split("-")[1], 0, 20
+        elif flow:
             mode = "single_flow"
             _, variant, loss_label = name.split("-")
             protocol = "murmurtp" if variant == "murmurtp" else "tcp"
@@ -158,6 +173,8 @@ def execute(directory: Path, cell, size, timeout, capture, git_sha, run_trial, p
                                             wan_loss_pct=loss, wan_rtt_ms=rtt, seed=0))
         if e3:
             config["leechers"] = n
+        if fairness:
+            config.update(experiment="E5", pairing=name.removeprefix("E5-"))
         if flow:
             config["experiment"] = "E4"
             if protocol == "tcp":

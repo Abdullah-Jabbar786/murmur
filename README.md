@@ -49,12 +49,12 @@ Client / Seed / Leecher
 | S1 | Sprint 1 | Topology, tracker, transport, codecs, loss shim | [Acceptance checks passed; evidence ready for review](captures/s1/README.md) |
 | S2 | Sprint 2 | TCP swarm with rarest-first and choking | [Technical checks passed on merged main at `ab7d63c`](captures/README.md#gate-s2-ci) |
 | S3 | Sprint 3 | MurmurTP swarm at 5% loss, one config flag | [Routed acceptance passed](experiments/README.md#ubuntu-i3-acceptance). [Five annotated exchanges](captures/README.md#gate-s3-murmurtp-exchanges) are documented. Protocol spec review remains open. |
-| S4 | Sprint 4 | E1–E5 experiments and graphs | [E1/E2](results/e1-e2/README.md), [E3](results/e3/README.md) and [E4](results/e4/README.md) measured and analyzed. E5 measurements pending. |
+| S4 | Sprint 4 | E1–E5 experiments and graphs | [E1/E2](results/e1-e2/README.md), [E3](results/e3/README.md), [E4](results/e4/README.md) and [E5](results/e5/README.md) measured and analyzed. |
 | S5 | Sprint 5 | Report, demo, verification, polishing | planned |
 
 ## Results
 
-The [results index](results/README.md) links the measured loss, RTT and swarm-scaling comparisons.
+The [results index](results/README.md) links the loss, RTT, swarm scaling, single-flow and two-flow fairness measurements.
 
 ## Quick start
 

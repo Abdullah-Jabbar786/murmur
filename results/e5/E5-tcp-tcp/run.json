@@ -1,0 +1,173 @@
+{
+  "version": 1,
+  "series": true,
+  "git_sha": "9bf806cd2bff350159612e8f9d1ac29953905a91",
+  "config": {
+    "transport": "tcp",
+    "file_size": 67108864,
+    "piece_size": 262144,
+    "block_size": 16384,
+    "tracker_url": "http://10.0.3.10:8000/announce",
+    "tracker_port": 8000,
+    "peer_port_tcp": 6881,
+    "peer_port_udp": 6882,
+    "unchoke_slots": 4,
+    "optimistic_unchoke_interval": 30,
+    "choke_interval": 10,
+    "keepalive_interval": 3,
+    "pipelining_depth": 16,
+    "mode": "competing_flows",
+    "wan_loss_pct": 0,
+    "wan_rtt_ms": 20,
+    "seed": 0,
+    "experiment": "E5",
+    "pairing": "tcp-tcp"
+  },
+  "timeout": 7200,
+  "capture": true,
+  "created": "2026-11-22T14:42:05+00:00",
+  "status": "complete",
+  "measurements": [
+    "recorded-1/attempt-1",
+    "recorded-2/attempt-1",
+    "recorded-3/attempt-1"
+  ],
+  "trials": [
+    {
+      "name": "warmup",
+      "attempts": [
+        {
+          "directory": "warmup/attempt-1",
+          "git_sha": "9bf806cd2bff350159612e8f9d1ac29953905a91",
+          "timeout": 7200,
+          "started": "2026-11-22T14:42:05+00:00",
+          "status": "passed",
+          "ended": "2026-11-22T14:44:03+00:00",
+          "result": {
+            "file_bytes": 67108864,
+            "sha256": "f1890c1ca63eae6fceb8ad36757df9660f4af30e73255e6816566b8a3aac404a",
+            "overlap_start_s": 1.22,
+            "overlap_end_s": 115.79,
+            "steady_start_s": 24.134,
+            "steady_end_s": 92.876,
+            "flows": [
+              {
+                "bytes_start": 13058517.824701196,
+                "bytes_end": 53451641.22155689,
+                "goodput_mbps": 4.700837729115322
+              },
+              {
+                "bytes_start": 13008633.624,
+                "bytes_end": 52175944.567432575,
+                "goodput_mbps": 4.558181134495077
+              }
+            ],
+            "jain_fairness": 0.9997626710680897
+          }
+        }
+      ]
+    },
+    {
+      "name": "recorded-1",
+      "attempts": [
+        {
+          "directory": "recorded-1/attempt-1",
+          "git_sha": "9bf806cd2bff350159612e8f9d1ac29953905a91",
+          "timeout": 7200,
+          "started": "2026-11-22T14:44:03+00:00",
+          "status": "passed",
+          "ended": "2026-11-22T14:46:09+00:00",
+          "result": {
+            "file_bytes": 67108864,
+            "sha256": "f1890c1ca63eae6fceb8ad36757df9660f4af30e73255e6816566b8a3aac404a",
+            "overlap_start_s": 1.409,
+            "overlap_end_s": 120.722,
+            "steady_start_s": 25.2716,
+            "steady_end_s": 96.8594,
+            "flows": [
+              {
+                "bytes_start": 11718400.963509472,
+                "bytes_end": 49632139.04830339,
+                "goodput_mbps": 4.236893781878356
+              },
+              {
+                "bytes_start": 14629035.255776891,
+                "bytes_end": 54275658.55584415,
+                "goodput_mbps": 4.430545238162622
+              }
+            ],
+            "jain_fairness": 0.9995010658777739
+          }
+        }
+      ]
+    },
+    {
+      "name": "recorded-2",
+      "attempts": [
+        {
+          "directory": "recorded-2/attempt-1",
+          "git_sha": "9bf806cd2bff350159612e8f9d1ac29953905a91",
+          "timeout": 7200,
+          "started": "2026-11-22T14:46:09+00:00",
+          "status": "passed",
+          "ended": "2026-11-22T14:48:19+00:00",
+          "result": {
+            "file_bytes": 67108864,
+            "sha256": "f1890c1ca63eae6fceb8ad36757df9660f4af30e73255e6816566b8a3aac404a",
+            "overlap_start_s": 2.204,
+            "overlap_end_s": 117.717,
+            "steady_start_s": 25.306600000000003,
+            "steady_end_s": 94.61439999999999,
+            "flows": [
+              {
+                "bytes_start": 11119617.304885345,
+                "bytes_end": 53888955.965702884,
+                "goodput_mbps": 4.9367417417165225
+              },
+              {
+                "bytes_start": 13789147.493812377,
+                "bytes_end": 45826779.79300699,
+                "goodput_mbps": 3.6980117446168674
+              }
+            ],
+            "jain_fairness": 0.9798346294562339
+          }
+        }
+      ]
+    },
+    {
+      "name": "recorded-3",
+      "attempts": [
+        {
+          "directory": "recorded-3/attempt-1",
+          "git_sha": "9bf806cd2bff350159612e8f9d1ac29953905a91",
+          "timeout": 7200,
+          "started": "2026-11-22T14:48:19+00:00",
+          "status": "passed",
+          "ended": "2026-11-22T14:50:26+00:00",
+          "result": {
+            "file_bytes": 67108864,
+            "sha256": "f1890c1ca63eae6fceb8ad36757df9660f4af30e73255e6816566b8a3aac404a",
+            "overlap_start_s": 2.141,
+            "overlap_end_s": 124.7,
+            "steady_start_s": 26.6528,
+            "steady_end_s": 100.1882,
+            "flows": [
+              {
+                "bytes_start": 13564793.044311378,
+                "bytes_end": 53856991.43736263,
+                "goodput_mbps": 4.383434198282869
+              },
+              {
+                "bytes_start": 13583211.00979021,
+                "bytes_end": 53030949.655144855,
+                "goodput_mbps": 4.291564459604995
+              }
+            ],
+            "jain_fairness": 0.9998878608072723
+          }
+        }
+      ]
+    }
+  ]
+}
