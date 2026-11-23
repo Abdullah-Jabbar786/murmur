@@ -418,6 +418,24 @@ direct-seed runner. Every case skipped in the earlier Windows run now has
 a passing targeted result on an appropriate platform. Fresh-VM and
 combined-sweep acceptance remain separate outstanding work.
 
+Combined reproduction follow-up: the E2 MurmurTP 100 ms recorded-3 attempt
+on `89f9cec` timed out at 7,200 seconds. Imported diagnostics show a5
+verified 193/256 pieces, last at 407.199 seconds; its last connection sample
+was at 437.408 seconds. The other nine leechers completed by 645.584 seconds.
+No a5 hash failures were reported. The original reset causes remain unknown.
+Discovery previously attempted each endpoint once. Recovery now permits
+eight attempts per endpoint across tracker refreshes. Stage 7 reconnects
+failed/closed sessions through fresh local UDP ports, retaining those sockets
+until shutdown to avoid immediate port reuse and stale-session packet mixing.
+Wire format and transfer deadlines are unchanged. Windows tests cover injected
+reset recovery, active-session rejection, retry limits and endpoint cleanup.
+The reconnect/client-server run passed 26 tests in 7.96 seconds. The runner
+and initial reconnect regression run passed eight with two Linux-only skips
+in 85.83 seconds, including both MurmurTP discovery loss settings.
+Ubuntu validation of this recovery change and combined reproduction remain
+pending. Keep the original failed sweep as evidence; use a new output path
+when testing changed transport code.
+
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
 | 1 | | | |

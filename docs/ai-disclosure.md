@@ -1,5 +1,12 @@
 # AI-use disclosure
 
+Routed-session recovery. Majid supplied the failed E2 100 ms trial archive.
+Codex read the peer logs and event records, identified the lack of discovery
+redial after session loss, and added bounded retries using fresh UDP endpoints
+for failed/closed Stage 7 sessions. Local regressions exercise injected resets,
+port changes, payload delivery and cleanup. The cause of the original resets
+and the outcome of a routed Ubuntu recovery trial remain unverified.
+
 Skipped-test audit. Codex inspected skip conditions on `89f9cec` and ran
 the affected plotting, dashboard, TCP and runner tests: 23 passed, six
 skipped. After approval to launch headless Chrome, the opt-in replay browser

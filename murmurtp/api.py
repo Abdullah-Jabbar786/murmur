@@ -31,6 +31,39 @@ class MurmurTransport(FlowControlTransport, Transport):
 
     connection_type = MurmurConnection
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._reconnect_lock = asyncio.Lock()
+        self._retry_endpoints = []
+        self._retry_connections = {}
+
+    async def connect(self, addr):
+        addr = self._address(addr)
+        async with self._reconnect_lock:
+            self._check()
+            previous = self._retry_connections.get(addr, self._peers.get(addr))
+            if previous is None:
+                return await super().connect(addr)
+            if previous._error is None and previous.state != "CLOSED":
+                raise RuntimeError("Connection to peer is still active")
+            # SYN v1 has no nonce. A different local UDP port keeps old DATA,
+            # ACK and SYN-ACK packets out of the replacement connection.
+            endpoint = type(self)(config=self.config, loss=self.loss, seed=self.seed)
+            self._retry_endpoints.append(endpoint)
+            await endpoint._bind((self.local_addr[0], 0))
+            # Retain even a failed endpoint until parent shutdown so its port
+            # cannot immediately be reused by a later retry.
+            connection = await endpoint.connect(addr)
+            self._check()
+            self._retry_connections[addr] = connection
+            return connection
+
+    async def close(self):
+        await super().close()
+        await asyncio.gather(*(endpoint.close() for endpoint in self._retry_endpoints))
+        self._retry_endpoints.clear()
+        self._retry_connections.clear()
+
     def connection_made(self, transport):
         if sys.platform == "win32":
             # Several peers send bursts to this one UDP socket. The Windows

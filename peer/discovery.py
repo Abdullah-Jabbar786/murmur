@@ -12,7 +12,7 @@ async def serve_discovered(node, client, timeout, event_log=None, *, single_sess
     event = "started"
     announced_complete = node.store.complete
     request = None
-    dialed = set()
+    dialed = {}
     try:
         while True:
             if completion.done():
@@ -36,9 +36,11 @@ async def serve_discovered(node, client, timeout, event_log=None, *, single_sess
                 if single_session:
                     # MurmurTP v1 supports one session per remote endpoint.
                     # Both nodes use the same endpoint ordering to elect one dialer.
-                    if node.address >= address or address in dialed:
+                    if node.address >= address or dialed.get(address, 0) >= 8:
                         continue
-                    dialed.add(address)
+                    # Refreshes space retries; bound retained UDP endpoints.
+                    # Connected peer IDs above suppress duplicate live sessions.
+                    dialed[address] = dialed.get(address, 0) + 1
                 try:
                     await node.connect(address)
                 except (OSError, ValueError, EOFError, asyncio.TimeoutError) as exc:
