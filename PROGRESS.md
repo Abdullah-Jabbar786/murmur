@@ -383,6 +383,28 @@ uses existing measurements; no experiments were rerun for report preparation.
 Report review, independent protocol review, fresh-VM acceptance, the complete
 combined experiment run and final demo/release work remain pending.
 
+Windows timeout investigation at `28c0f6c`: the zero-loss ten-leecher
+MurmurTP discovery test failed in 68.57 seconds and also failed with the
+Windows selector loop. The TCP control passed in 22.94 seconds. Profiling
+found 239 synchronous log refreshes occupying 44.70 seconds on the peer
+event loop. Test monitoring now runs in a worker thread; the isolated
+MurmurTP case passed in 52.21 seconds with unchanged deadlines and payload.
+Transport code and published experiment measurements are unchanged.
+The complete experiment-runner test file then passed seven tests with two
+Linux-only subprocess skips in 68.21 seconds, including TCP, zero-loss
+MurmurTP and 5%-loss MurmurTP. Full-suite release validation remains pending.
+The subsequent full Windows run reported 670 passed, eight skipped and one
+failure in 323.58 seconds. The MurmurTP discovery cases passed. The remaining
+failure was `test_cli_table_and_real_png`: Matplotlib was absent from the
+active virtual environment. Installing the declared dependency was blocked
+by sandbox network restrictions and the escalation request was declined.
+Majid installed Matplotlib and reran the analysis tests. The first rerun
+encountered pytest temporary-directory permissions; using a unique temporary
+directory and disabling pytest's cache gave 30 passed in 16.33 seconds,
+including the previously failing PNG test. No failures remain from the full
+run without a passing retest; this is not a new all-green full-suite run.
+Review of skipped checks and final release validation remain pending.
+
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
 | 1 | | | |

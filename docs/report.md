@@ -328,8 +328,19 @@ the mixed-flow starvation observed in E5. Any future tuning should be evaluated
 with a new, identified dataset rather than replacing these measurements.
 
 The Windows ten-leecher MurmurTP discovery test timed out on the E5 branch
-and the preceding E4 revision. Its cause remains unresolved; Ubuntu's later
-passing suite does not establish that the Windows issue is fixed.
+and the preceding E4 revision. A subsequent investigation on `28c0f6c`
+reproduced the timeout and found synchronous test-log polling occupying
+44.7 seconds on the same event loop as the peers. Moving that monitoring to
+a worker thread allowed the isolated case to pass in 52.21 seconds with
+unchanged deadlines and verification. This addresses an observed monitoring
+bottleneck; full-suite release validation remains separate, and the evidence
+does not establish the cause of every historical timeout.
+The subsequent full Windows run passed 670 tests, including discovery, with
+eight skips and one plotting failure because Matplotlib was not installed.
+After Matplotlib installation, Majid's analysis rerun passed all 30 tests in
+16.33 seconds, including the PNG test, using a fresh temporary directory and
+disabled pytest cache. This clears that failure by targeted retest; it is
+not a second full-suite run. Skipped checks still require review.
 Fresh-VM acceptance, the combined full experiment run, independent protocol
 review, final report review and the demonstration/release checklist remain
 outstanding. This report does not mark those checks complete.

@@ -1,5 +1,20 @@
 # AI-use disclosure
 
+Windows discovery timeout investigation. Codex reproduced the ten-leecher
+zero-loss MurmurTP timeout on Windows/Python 3.14 at `28c0f6c`, compared
+event loops and TCP, and profiled the test. Synchronous `RunLog.refresh`
+occupied 44.7 seconds of the profiled run on the peers' event loop. Codex
+moved test monitoring to `asyncio.to_thread`, retaining transfer deadlines,
+payload size and verification assertions. The isolated case then passed in
+52.21 seconds. This identifies a test-monitoring bottleneck; it does not
+establish the cause of every historical timeout or alter transport behaviour.
+The full Windows suite subsequently reported 670 passed, eight skipped and
+one plotting failure caused by missing Matplotlib; the discovery cases passed.
+Majid installed Matplotlib and supplied a passing analysis rerun: 30 passed
+in 16.33 seconds. A unique temporary directory and disabled pytest cache
+avoided the permissions errors in his first rerun. Codex recorded this
+targeted verification separately from the earlier full-suite result.
+
 S5 report draft. Codex synthesized the existing design documentation,
 published E1–E5 results and reproduction record into `docs/report.md`,
 checked local evidence links and compared reported tables with the existing
