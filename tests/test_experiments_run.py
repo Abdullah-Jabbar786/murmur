@@ -114,7 +114,9 @@ async def test_ten_leechers_discover_and_verify(tmp_path, transport, loss, monke
                     if task.done():
                         task.result()
                         pytest.fail("peer exited before the swarm finished")
-                log.refresh()
+                # File scans and reads can block for hundreds of milliseconds
+                # on Windows. Keep monitoring off the peers' UDP event loop.
+                await asyncio.to_thread(log.refresh)
                 completed = {r["node"] for r in log.rows if r.get("event") == "completed"}
                 if completed == set(peers.values()) - {peers["seed"]}:
                     return
