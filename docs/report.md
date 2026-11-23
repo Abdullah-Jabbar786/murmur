@@ -340,7 +340,13 @@ eight skips and one plotting failure because Matplotlib was not installed.
 After Matplotlib installation, Majid's analysis rerun passed all 30 tests in
 16.33 seconds, including the PNG test, using a fresh temporary directory and
 disabled pytest cache. This clears that failure by targeted retest; it is
-not a second full-suite run. Skipped checks still require review.
+not a second full-suite run. A subsequent skip audit on `89f9cec` passed the
+two previously skipped Matplotlib-dependent tests. The opt-in real Chrome
+replay check also passed on generated events. The remaining five skips are
+Linux-specific socket-option and subprocess checks. Majid subsequently ran
+all five in Ubuntu: five passed in 11.09 seconds. Every previously skipped
+case now has a passing targeted result on an appropriate platform; these
+separate runs do not constitute a fresh-VM or combined-sweep acceptance run.
 Fresh-VM acceptance, the combined full experiment run, independent protocol
 review, final report review and the demonstration/release checklist remain
 outstanding. This report does not mark those checks complete.
