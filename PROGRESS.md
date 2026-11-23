@@ -405,6 +405,19 @@ including the previously failing PNG test. No failures remain from the full
 run without a passing retest; this is not a new all-green full-suite run.
 Review of skipped checks and final release validation remain pending.
 
+Skipped-test audit on `89f9cec`: with Matplotlib installed, the E4 figure
+and E5 reporting tests passed. The targeted Windows audit reported 23 passed
+and six skipped in 16.90 seconds: five Linux-only cases and the opt-in Chrome
+check. Enabling the real headless Chrome check then gave one pass in 5.11
+seconds, covering replay seek, play/pause, restart, overlay and recorded
+transport display on generated logs. This is automated control verification,
+not a new routed transfer or a demo recording. Majid then ran the five
+platform-specific cases in Ubuntu: five passed in 11.09 seconds, covering
+Reno/CUBIC socket options, TCP/MurmurTP subprocess supervision and the E3
+direct-seed runner. Every case skipped in the earlier Windows run now has
+a passing targeted result on an appropriate platform. Fresh-VM and
+combined-sweep acceptance remain separate outstanding work.
+
 | Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
 |---|---|---|---|
 | 1 | | | |

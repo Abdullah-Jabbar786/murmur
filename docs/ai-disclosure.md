@@ -1,5 +1,12 @@
 # AI-use disclosure
 
+Skipped-test audit. Codex inspected skip conditions on `89f9cec` and ran
+the affected plotting, dashboard, TCP and runner tests: 23 passed, six
+skipped. After approval to launch headless Chrome, the opt-in replay browser
+test passed. Its input is generated test events, not fresh experiment data.
+Majid supplied the Ubuntu rerun of all five Linux-only cases: five passed
+in 11.09 seconds. Codex recorded this separately from the Windows audit.
+
 Windows discovery timeout investigation. Codex reproduced the ten-leecher
 zero-loss MurmurTP timeout on Windows/Python 3.14 at `28c0f6c`, compared
 event loops and TCP, and profiled the test. Synchronous `RunLog.refresh`
