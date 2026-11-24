@@ -1,5 +1,7 @@
 # Murmur — Definitive Master Plan
 
+> **Status note:** This is the planning snapshot from 15 Nov 2026. Unticked gate boxes below describe the plan at that time, not current progress. See [PROGRESS.md](../PROGRESS.md) for the build history and [report.md](report.md) for final results.
+
 **Project:** Murmur — BitTorrent-style P2P swarm over kernel TCP or MurmurTP (custom reliable, congestion-controlled transport on UDP)  
 **Course:** CS3001 Computer Networks, FAST-NUCES Karachi, Fall 2026, Miss Aqsa Aslam, BCS-5H  
 **Team:** Abdullah (24K-0859, lead + transport), Muhammad Hammad (24K-0544, swarm), Abdul Majid (24K-0895, infra)  
@@ -778,9 +780,3 @@ Deliberately break things, record what happened:
 - [ ] Which one stretch goal (decide at Gate S4)
 - [ ] Report format required by instructor
 - [ ] Student Developer Pack → branch protection available?
-
----
-
-## Appendix: Resuming on either Claude account
-
-One account is the **scribe** and writes context updates. The other receives them. To resume: upload this file, paste latest status block (done, in progress, blocked, decisions changed), say which backlog item you're on. Record any decision change here via PR — **the repo is the single source of truth.**
