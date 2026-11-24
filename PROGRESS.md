@@ -417,14 +417,3 @@ Reno/CUBIC socket options, TCP/MurmurTP subprocess supervision and the E3
 direct-seed runner. Every case skipped in the earlier Windows run now has
 a passing targeted result on an appropriate platform. Fresh-VM and
 combined-sweep acceptance remain separate outstanding work.
-
-| Week | Person A (Transport) | Person B (Swarm) | Person C (Infra) |
-|---|---|---|---|
-| 1 | | | |
-| 2 | | | |
-| 3 | | | |
-| 4 | | | |
-| 5 | | | |
-| 6 | | | |
-| 7 | | | |
-| 8 | | | |
