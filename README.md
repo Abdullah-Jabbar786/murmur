@@ -1,7 +1,7 @@
 # Murmur
 
 <p align="center">
-  <img src="https://img.shields.io/badge/status-early%20development-orange" alt="status" />
+  <img src="https://img.shields.io/badge/status-final%20review-green" alt="status" />
   <img src="https://img.shields.io/badge/language-Python-blue" alt="language" />
   <img src="https://img.shields.io/badge/network-UDP%2FTCP%20swarm-green" alt="network" />
 </p>
