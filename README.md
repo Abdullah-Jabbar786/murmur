@@ -131,4 +131,4 @@ See `docs/ai-disclosure.md`.
 
 ## License
 
-To be added when the repository becomes public.
+MIT. See [LICENSE](LICENSE). The bundled dashboard fonts (Inter and JetBrains Mono) are under the SIL Open Font License, see [dashboard/static/fonts/LICENSE.txt](dashboard/static/fonts/LICENSE.txt).
