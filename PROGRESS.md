@@ -1,6 +1,12 @@
 # Weekly progress
 
-One short line per person per week.
+## Current status (25 Nov 2026)
+
+- Sprints 0 to 4 are complete: TCP swarm, MurmurTP (Stages 1 to 7), routed lab, dashboard with replay, and experiments E1 to E5 with published results.
+- Report is drafted in [docs/report.md](docs/report.md).
+- Still open: report review, independent protocol review, fresh-VM acceptance, one full `make experiments` run, and the final demo and release.
+
+## Build history
 
 17 Nov 2026: Sprint 0 complete per team confirmation. A1.1 merged in PR #7
 (`14677e3`), A1.2 in PR #8 (`0760813`), and A1.3 in PR #9 (`ce0c221`).
