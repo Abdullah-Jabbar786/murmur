@@ -21,3 +21,6 @@ results/**/*.pcap
 /results/mock-analysis/
 *.pcapng
 !captures/*.pcapng
+
+.hypothesis/
+/murmur_file.txt
